@@ -1,0 +1,33 @@
+# 秘密の情報（パスワード・APIキー・DB の接続情報など）を置くファイルは GitHub に載せない
+.env
+.env.*
+!.env.example
+application-local.properties
+application-local.yml
+application-secret.*
+
+# 鍵ファイル
+*.pem
+*.key
+*.p12
+*.jks
+
+# Java / Gradle の生成物
+.gradle/
+build/
+out/
+bin/
+*.class
+*.log
+hs_err_pid*
+
+# 画面（フロントエンド）を作る場合の生成物
+node_modules/
+dist/
+
+# エディタ・OS
+.vscode/
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
