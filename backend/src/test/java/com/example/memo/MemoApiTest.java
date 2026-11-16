@@ -9,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.example.memo.memo.MemoRepository;
+import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -100,6 +101,41 @@ class MemoApiTest {
 		// 絵文字 1000 個は、Java の length() では 2000。見た目の文字数 1000 なので、登録できる
 		postMemo("😀".repeat(1000)).andExpect(status().isCreated());
 		postMemo("😀".repeat(1001)).andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void 登録の返事と一覧で_日時が同じ() throws Exception {
+		// 返事の日時と、DB から読み直した日時がずれないこと（DB はマイクロ秒までしか持てない）
+		String created = JsonPath.read(
+				postMemo("日時の確認").andReturn().getResponse().getContentAsString(), "$.createdAt");
+		mockMvc.perform(get("/api/memos")).andExpect(jsonPath("$[0].createdAt").value(created));
+	}
+
+	@Test
+	void 改行しないスペースだけの本文は400() throws Exception {
+		// 画面（JavaScript の trim）は空白と見なす。API も同じにそろえる
+		postBody("{\"body\":\"\\u00a0\\u00a0\"}").andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.message").value("本文を入力してください"));
+		postBody("{\"body\":\"\\ufeff\"}").andExpect(status().isBadRequest());
+	}
+
+	@Test
+	void 本文の前後の改行しないスペースは取り除かれる() throws Exception {
+		postBody("{\"body\":\"\\u00a0本文\\u00a0\"}").andExpect(status().isCreated())
+				.andExpect(jsonPath("$.body").value("本文"));
+	}
+
+	@Test
+	void 本文が数字なら400() throws Exception {
+		postBody("{\"body\":123}").andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.message").value("リクエストが正しくありません"));
+	}
+
+	@Test
+	void Content_Typeが違うと415で原因が分かる() throws Exception {
+		mockMvc.perform(post("/api/memos").contentType(MediaType.TEXT_PLAIN).content("x"))
+				.andExpect(status().isUnsupportedMediaType())
+				.andExpect(jsonPath("$.message").value("送る形式（Content-Type）が正しくありません。JSON で送ってください"));
 	}
 
 	@Test

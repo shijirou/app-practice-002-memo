@@ -1,11 +1,13 @@
 package com.example.memo.error;
 
+import java.util.Comparator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -25,7 +27,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(
             MethodArgumentNotValidException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+        // 項目が増えても毎回同じメッセージになるよう、項目名の順に並べてから先頭を使う
         String message = ex.getBindingResult().getFieldErrors().stream()
+                .sorted(Comparator.comparing(FieldError::getField))
                 .map(error -> error.getDefaultMessage())
                 .findFirst()
                 .orElse("入力が正しくありません");
@@ -38,6 +42,9 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         String message = switch (statusCode.value()) {
             case 404 -> "見つかりません";
             case 405 -> "この操作はできません";
+            case 406 -> "この形式では返せません";
+            case 413 -> "送る内容が大きすぎます";
+            case 415 -> "送る形式（Content-Type）が正しくありません。JSON で送ってください";
             default -> statusCode.is4xxClientError() ? "リクエストが正しくありません" : "エラーが起きました";
         };
         if (statusCode.is5xxServerError()) {

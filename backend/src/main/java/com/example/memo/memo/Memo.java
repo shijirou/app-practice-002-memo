@@ -7,6 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 /** メモ 1 件（表 memo の 1 行）。 */
 @Entity
@@ -36,7 +37,8 @@ public class Memo {
     public Memo(String body) {
         this.body = body;
         this.important = false;
-        this.createdAt = Instant.now();
+        // DB（PostgreSQL）はマイクロ秒までしか持てない。ここで丸めておき、登録の返事と一覧で日時がずれないようにする
+        this.createdAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
         this.updatedAt = this.createdAt;
     }
 
