@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>メモ（画面モック）</title>
+<style>
+  :root {
+    --bg: #dce0e5; --text: #1b1f24; --card: #fcfcfc;
+    --primary: #0b5cad; --danger: #b3261e; --line: #d5dae0; --muted: #5b6672; --star: #d99a00;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); display: flex; flex-direction: column;
+    font-family: "Yu Gothic UI", "Meiryo", sans-serif; font-size: 16px; line-height: 1.6; }
+  .banner { background: #fff4d6; border-bottom: 1px solid #e6cf8a; padding: 6px 16px;
+    font-size: 13px; text-align: center; }
+  main { flex: 1; min-height: 0; width: 100%; max-width: 1200px; margin: 0 auto; padding: 24px;
+    display: grid; grid-template-columns: 380px 1fr; gap: 24px; }
+  h2 { margin: 0 0 8px; font-size: 16px; line-height: 32px; }
+
+  /* 左: 新しいメモ。右の見出しと高さをそろえるため、同じ余白・同じ見出しにする */
+  .panel { background: var(--card); border: 1px solid var(--line);
+    border-radius: 8px; padding: 16px; }
+  .panel.left { align-self: start; }
+  .panel.right { display: flex; flex-direction: column; min-height: 0; }
+
+  textarea, input[type="search"] { width: 100%; font: inherit; color: inherit;
+    border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; background: #fff; }
+  textarea { resize: none; overflow-y: auto; }
+  /* 入力欄は、文字が増えると伸びる。上限を超えたら中でスクロール */
+  #newBody { min-height: 96px; max-height: calc(100vh - 220px); }
+  /* 見出しの行（左: 新しいメモ + 保存ボタン、右: 検索）は同じ高さにそろえる */
+  .phead { display: flex; align-items: center; justify-content: space-between; height: 32px; margin-bottom: 8px; }
+  .phead h2 { margin: 0; }
+  .under { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-top: 6px; }
+  textarea:focus, input:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
+  .count { font-size: 13px; color: var(--muted); margin: 4px 0 12px; }
+  .hint { font-size: 13px; color: var(--muted); margin: 8px 0 0; text-align: center; }
+  button { font: inherit; cursor: pointer; border-radius: 6px; border: 1px solid var(--line);
+    background: #fff; color: var(--text); padding: 6px 14px; }
+  button:hover:not(:disabled) { background: #eef1f4; }
+  button.primary { background: var(--primary); border-color: var(--primary);
+    color: #fff; font-size: 15px; line-height: 22px; padding: 3px 22px; }
+  button.primary:hover:not(:disabled) { background: #094a8c; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* 検索の行: 検索欄 + 重要ボタン */
+  .searchrow { display: flex; gap: 8px; }
+  .searchrow input { flex: 1; }
+  /* 「重要のみ」の縁は、重要なメモの左端の線と同じ色 */
+  #onlyImportant { border: 2px solid var(--star); }
+  #onlyImportant[aria-pressed="true"] { background: #fff3cf; }
+  .panel.right { background: #ffffff; }
+  .result { margin: 8px 0 8px; font-size: 14px; color: var(--muted); }
+
+  /* 一覧: 右にスクロールバーを常に表示 */
+  #list { flex: 1; min-height: 0; overflow-y: scroll; padding-right: 8px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px;
+    padding: 14px 16px 18px; margin-bottom: 14px; }
+  .card.important { border-left: 4px solid var(--star); }
+  .head { display: flex; align-items: center; gap: 6px; min-height: 28px; }
+  .date { font-size: 13px; color: var(--muted); margin-right: auto; }
+  /* 編集・削除・重要は小さく薄く。カーソルを合わせると濃くなる */
+  .head button { border: none; background: transparent; padding: 0 8px; font-size: 13px;
+    color: #5f6975; line-height: 26px; }
+  .head button.del { margin-left: 8px; }
+  .head button:hover:not(:disabled) { background: #eef1f4; color: var(--text); }
+  .head button.del:hover { color: var(--danger); }
+  /* 「編集」と「保存」は同じ大きさ・同じ位置。編集中は他のボタンの場所を空けたままにする */
+  .head button.edit, .head button.savebtn { width: 48px; padding: 0; }
+  .head button.savebtn { background: var(--primary); color: #fff; font-size: 13px; }
+  .head button.savebtn:hover:not(:disabled) { background: #094a8c; color: #fff; }
+  .head .gap { visibility: hidden; pointer-events: none; }
+  .body { margin: 10px 0 0; line-height: 1.8; white-space: pre-wrap; word-break: break-word;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .card:not(:has(textarea)) { cursor: pointer; }
+  .card:not(:has(textarea)):hover { border-color: #a9b1bb; }
+  .card:not(:has(textarea)) .head button { cursor: pointer; }
+  .body.open { display: block; overflow: visible; }
+  .more { font-size: 13px; color: var(--primary); margin-top: 4px; cursor: pointer; width: fit-content; }
+  .more:hover { text-decoration: underline; }
+  .empty { text-align: center; color: var(--muted); padding: 32px 0; }
+  mark { background: #ffe58a; }
+  .card textarea { min-height: 100px; max-height: 40vh; margin: 4px 0 0; }
+  .error { color: var(--danger); font-size: 13px; margin: 4px 0 0; }
+  .esc { font-size: 12px; color: var(--muted); margin: 4px 0 0; }
+</style>
+</head>
+<body>
+<div class="banner">これは画面の<strong>モック（見た目の確認用）</strong>です。メモはこのページの中だけに保存され、再読み込みすると元に戻ります。内容はすべて架空です。</div>
+<main>
+  <section class="panel left" aria-label="新しいメモ">
+    <div class="phead">
+      <h2>新しいメモ</h2>
+      <button class="primary" id="saveNew" disabled>保存</button>
+    </div>
+    <textarea id="newBody" maxlength="1000" placeholder="ここに入力" autofocus></textarea>
+    <div class="under"><span id="newCount">0 / 1000 文字</span><span>Ctrl + Enter でも保存</span></div>
+  </section>
+
+  <section class="panel right" aria-label="メモ一覧">
+    <h2>検索</h2>
+    <div class="searchrow">
+      <input type="search" id="keyword" placeholder="キーワード">
+      <button id="onlyImportant" aria-pressed="false" title="重要なメモだけ表示">重要のみ</button>
+    </div>
+    <div class="result" id="result"></div>
+    <div id="list"></div>
+  </section>
+</main>
+
+<script>
+  const MAX = 1000;
+  const pad = n => String(n).padStart(2, "0");
+  const WD = ["日", "月", "火", "水", "木", "金", "土"];
+  const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}(${WD[d.getDay()]}) ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  const ago = h => new Date(Date.now() - h * 3600 * 1000);
+
+  // 架空のサンプル（新しい順に並べ替えて表示する）
+  let nextId = 9;
+  let memos = [
+    { id: 1, body: "架空商事の架空さんから電話。見積書の再送を希望。明日午前までに送る。", createdAt: ago(2), important: true },
+    { id: 2, body: "会議室の予約は金曜 14 時（架空プロジェクト定例）。資料は前日までに印刷。", createdAt: ago(20), important: false },
+    { id: 3, body: "コピー用紙の残りが少ない。来週の注文に入れる。\nA4 を 5 箱。", createdAt: ago(50), important: false },
+    { id: 4, body: "架空フーズの請求書は月末締め。確認して経理へ回す。", createdAt: ago(100), important: true },
+    { id: 5, body: "来客用のお茶を補充する。給湯室の棚の上段。", createdAt: ago(130), important: false },
+    { id: 6, body: "架空工業の担当者が来週火曜に来社予定。応接室を押さえておく。", createdAt: ago(170), important: false },
+    { id: 7, body: "プリンターのトナー交換は、型番を確認してから注文する。", createdAt: ago(220), important: false },
+    { id: 8, body: "月次の報告書は第 3 営業日までに提出（架空部署）。長めの文章の例:\n1. 数字の確認\n2. 前月との比較\n3. コメントの記入\n4. 上長への提出\n5. 控えの保存", createdAt: ago(300), important: false },
+  ];
+  let editingId = null;
+  let onlyImportant = false;
+  const expanded = new Set(); // 全文を開いているメモの id
+
+  const $ = id => document.getElementById(id);
+  const newBody = $("newBody"), saveNew = $("saveNew"), newCount = $("newCount");
+  const keyword = $("keyword"), list = $("list"), result = $("result"), impBtn = $("onlyImportant");
+
+  const esc = s => s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  function highlight(text, kw) {
+    const safe = esc(text);
+    if (!kw) return safe;
+    const k = esc(kw).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    return safe.replace(new RegExp(k, "gi"), m => `<mark>${m}</mark>`);
+  }
+  // 入力欄を、文字の量に合わせて伸ばす（上限を超えたら中でスクロール）
+  function autoGrow(ta) { ta.style.height = "auto"; ta.style.height = ta.scrollHeight + 2 + "px"; }
+
+  function render() {
+    const kw = keyword.value.trim();
+    const total = memos.length, impCount = memos.filter(m => m.important).length;
+    const shown = memos
+      .filter(m => !onlyImportant || m.important)
+      .filter(m => !kw || m.body.toLowerCase().includes(kw.toLowerCase()))
+      .sort((a, b) => b.createdAt - a.createdAt);
+    let text = `全${total}件（重要：${impCount}件）`;
+    if (kw || onlyImportant) text += ` ／ 表示 ${shown.length}件`;
+    result.textContent = text;
+
+    if (shown.length === 0) {
+      list.innerHTML = `<div class="empty">${kw || onlyImportant ? "見つかりませんでした" : "メモはまだありません"}</div>`;
+      return;
+    }
+    list.innerHTML = shown.map(m => m.id === editingId ? editCard(m) : viewCard(m, kw)).join("");
+    // 3 行で切れているメモには「続きを読む」、開いているメモには「閉じる」を付ける
+    list.querySelectorAll(".card .body").forEach(b => {
+      const open = b.classList.contains("open");
+      if (open || b.scrollHeight > b.clientHeight + 1) {
+        b.insertAdjacentHTML("afterend", `<div class="more">${open ? "閉じる" : "続きを読む"}</div>`);
+      }
+    });
+    const ta = list.querySelector("textarea");
+    if (ta) { autoGrow(ta); ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+  }
+  const viewCard = (m, kw) => `
+    <div class="card ${m.important ? "important" : ""}" data-id="${m.id}">
+      <div class="head">
+        <span class="date">${fmt(m.createdAt)}</span>
+        <button class="imp ${m.important ? "on" : ""}" data-act="star" title="${m.important ? "重要を外す" : "重要にする"}">${m.important ? "重要を外す" : "重要にする"}</button>
+        <button class="edit" data-act="edit">編集</button>
+        <button data-act="delete" class="del">削除</button>
+      </div>
+      <div class="body ${expanded.has(m.id) ? "open" : ""}">${highlight(m.body, kw)}</div>
+    </div>`;
+  const editCard = m => `
+    <div class="card ${m.important ? "important" : ""}" data-id="${m.id}">
+      <div class="head">
+        <span class="date">${fmt(m.createdAt)}</span>
+        <button class="gap" tabindex="-1" aria-hidden="true">重要にする</button>
+        <button data-act="save" class="savebtn">保存</button>
+        <button class="gap del" tabindex="-1" aria-hidden="true">削除</button>
+      </div>
+      <textarea maxlength="1000" id="editBody">${esc(m.body)}</textarea>
+      <div class="error" id="editError"></div>
+      <div class="esc">Esc キーで取り消し</div>
+    </div>`;
+
+  // 新規登録
+  function updateNew() {
+    newCount.textContent = `${newBody.value.length} / ${MAX} 文字`;
+    saveNew.disabled = newBody.value.trim().length === 0;
+    autoGrow(newBody);
+  }
+  function addMemo() {
+    const body = newBody.value.trim();
+    if (!body) return;
+    memos.push({ id: nextId++, body, createdAt: new Date(), important: false });
+    newBody.value = ""; updateNew(); render(); list.scrollTop = 0; newBody.focus();
+  }
+  newBody.addEventListener("input", updateNew);
+  newBody.addEventListener("keydown", e => { if (e.ctrlKey && e.key === "Enter") addMemo(); });
+  saveNew.addEventListener("click", addMemo);
+  keyword.addEventListener("input", render);
+  impBtn.addEventListener("click", () => {
+    onlyImportant = !onlyImportant;
+    impBtn.setAttribute("aria-pressed", String(onlyImportant));
+    render();
+  });
+
+  // 一覧の操作
+  function saveEdit(id) {
+    const body = $("editBody").value.trim();
+    if (!body) { $("editError").textContent = "本文を入力してください。"; return; }
+    memos.find(m => m.id === id).body = body;
+    editingId = null; render();
+  }
+  list.addEventListener("click", e => {
+    const btn = e.target.closest("button[data-act]");
+    // ボタン以外のカードの部分を押すと、全文の開閉（編集中・文字を選択している間は何もしない）
+    if (!btn) {
+      const card = e.target.closest(".card");
+      if (!card || card.querySelector("textarea")) return;
+      if (String(window.getSelection()).length > 0) return;
+      const tid = Number(card.dataset.id);
+      expanded.has(tid) ? expanded.delete(tid) : expanded.add(tid);
+      render();
+      return;
+    }
+    const id = Number(btn.closest(".card").dataset.id);
+    const act = btn.dataset.act;
+    if (act === "edit") { editingId = id; render(); }
+    else if (act === "save") saveEdit(id);
+    else if (act === "star") { const m = memos.find(x => x.id === id); m.important = !m.important; render(); }
+    else if (act === "delete") {
+      if (confirm("このメモを削除しますか？\n削除すると元に戻せません。")) {
+        memos = memos.filter(m => m.id !== id); render();
+      }
+    }
+  });
+  list.addEventListener("input", e => { if (e.target.id === "editBody") autoGrow(e.target); });
+  list.addEventListener("keydown", e => {
+    if (e.target.id !== "editBody") return;
+    if (e.key === "Escape") { editingId = null; render(); }
+    else if (e.ctrlKey && e.key === "Enter") saveEdit(editingId);
+  });
+
+  updateNew(); render();
+</script>
+</body>
+</html>
