@@ -78,8 +78,9 @@
   .card:not(:has(textarea)):hover { border-color: #a9b1bb; }
   .card:not(:has(textarea)) .head button { cursor: pointer; }
   .body.open { display: block; overflow: visible; }
-  .more { font-size: 13px; color: var(--primary); margin-top: 4px; cursor: pointer; width: fit-content; }
-  .more:hover { text-decoration: underline; }
+  button.more { display: block; border: none; background: none; padding: 0; margin-top: 4px;
+    font-size: 13px; color: var(--primary); cursor: pointer; }
+  button.more:hover:not(:disabled) { background: none; text-decoration: underline; }
   .empty { text-align: center; color: var(--muted); padding: 32px 0; }
   mark { background: #ffe58a; }
   .card textarea { min-height: 100px; max-height: 40vh; margin: 4px 0 0; }
@@ -95,17 +96,17 @@
       <h2>新しいメモ</h2>
       <button class="primary" id="saveNew" disabled>保存</button>
     </div>
-    <textarea id="newBody" maxlength="1000" placeholder="ここに入力" autofocus></textarea>
+    <textarea id="newBody" maxlength="1000" placeholder="ここに入力" aria-label="新しいメモの本文" autofocus></textarea>
     <div class="under"><span id="newCount">0 / 1000 文字</span><span>Ctrl + Enter でも保存</span></div>
   </section>
 
   <section class="panel right" aria-label="メモ一覧">
     <h2>検索</h2>
     <div class="searchrow">
-      <input type="search" id="keyword" placeholder="キーワード">
+      <input type="search" id="keyword" placeholder="キーワード" aria-label="キーワードで検索">
       <button id="onlyImportant" aria-pressed="false" title="重要なメモだけ表示">重要のみ</button>
     </div>
-    <div class="result" id="result"></div>
+    <div class="result" id="result" aria-live="polite"></div>
     <div id="list"></div>
   </section>
 </main>
@@ -130,6 +131,8 @@
     { id: 8, body: "月次の報告書は第 3 営業日までに提出（架空部署）。長めの文章の例:\n1. 数字の確認\n2. 前月との比較\n3. コメントの記入\n4. 上長への提出\n5. 控えの保存", createdAt: ago(300), important: false },
   ];
   let editingId = null;
+  let editDraft = null;   // 編集中の書きかけの文字
+  let focusEdit = false;  // 編集を始めた直後だけ true
   let onlyImportant = false;
   const expanded = new Set(); // 全文を開いているメモの id
 
@@ -162,16 +165,22 @@
       list.innerHTML = `<div class="empty">${kw || onlyImportant ? "見つかりませんでした" : "メモはまだありません"}</div>`;
       return;
     }
+    const cur = $("editBody");
+    if (cur && editingId !== null) editDraft = cur.value; // 編集の途中の文字を覚えておき、描き直したあとも残す
     list.innerHTML = shown.map(m => m.id === editingId ? editCard(m) : viewCard(m, kw)).join("");
     // 3 行で切れているメモには「続きを読む」、開いているメモには「閉じる」を付ける
     list.querySelectorAll(".card .body").forEach(b => {
       const open = b.classList.contains("open");
       if (open || b.scrollHeight > b.clientHeight + 1) {
-        b.insertAdjacentHTML("afterend", `<div class="more">${open ? "閉じる" : "続きを読む"}</div>`);
+        b.insertAdjacentHTML("afterend", `<button class="more" data-act="toggle">${open ? "閉じる" : "続きを読む"}</button>`);
       }
     });
     const ta = list.querySelector("textarea");
-    if (ta) { autoGrow(ta); ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+    if (ta) {
+      autoGrow(ta);
+      // 編集を始めたときだけ、カーソルを入れる（検索中などに入力を奪わない）
+      if (focusEdit) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); focusEdit = false; }
+    }
   }
   const viewCard = (m, kw) => `
     <div class="card ${m.important ? "important" : ""}" data-id="${m.id}">
@@ -191,7 +200,7 @@
         <button data-act="save" class="savebtn">保存</button>
         <button class="gap del" tabindex="-1" aria-hidden="true">削除</button>
       </div>
-      <textarea maxlength="1000" id="editBody">${esc(m.body)}</textarea>
+      <textarea maxlength="1000" id="editBody" aria-label="メモの本文を編集">${esc(editDraft ?? m.body)}</textarea>
       <div class="error" id="editError"></div>
       <div class="esc">Esc キーで取り消し</div>
     </div>`;
@@ -223,7 +232,11 @@
     const body = $("editBody").value.trim();
     if (!body) { $("editError").textContent = "本文を入力してください。"; return; }
     memos.find(m => m.id === id).body = body;
-    editingId = null; render();
+    editingId = null; editDraft = null; render();
+  }
+  function toggleOpen(id) {
+    if (expanded.has(id)) expanded.delete(id); else expanded.add(id);
+    render();
   }
   list.addEventListener("click", e => {
     const btn = e.target.closest("button[data-act]");
@@ -232,14 +245,13 @@
       const card = e.target.closest(".card");
       if (!card || card.querySelector("textarea")) return;
       if (String(window.getSelection()).length > 0) return;
-      const tid = Number(card.dataset.id);
-      expanded.has(tid) ? expanded.delete(tid) : expanded.add(tid);
-      render();
+      toggleOpen(Number(card.dataset.id));
       return;
     }
     const id = Number(btn.closest(".card").dataset.id);
     const act = btn.dataset.act;
-    if (act === "edit") { editingId = id; render(); }
+    if (act === "toggle") toggleOpen(id);
+    else if (act === "edit") { editingId = id; editDraft = null; focusEdit = true; render(); }
     else if (act === "save") saveEdit(id);
     else if (act === "star") { const m = memos.find(x => x.id === id); m.important = !m.important; render(); }
     else if (act === "delete") {
@@ -251,7 +263,7 @@
   list.addEventListener("input", e => { if (e.target.id === "editBody") autoGrow(e.target); });
   list.addEventListener("keydown", e => {
     if (e.target.id !== "editBody") return;
-    if (e.key === "Escape") { editingId = null; render(); }
+    if (e.key === "Escape") { editingId = null; editDraft = null; render(); }
     else if (e.ctrlKey && e.key === "Enter") saveEdit(editingId);
   });
 
