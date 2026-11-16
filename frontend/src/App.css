@@ -1,0 +1,222 @@
+/* 画面の見た目。docs/mock/index.html（確認済みのモック）に合わせている */
+:root {
+  --bg: #dce0e5;
+  --text: #1b1f24;
+  --card: #fcfcfc;
+  --primary: #0b5cad;
+  --danger: #b3261e;
+  --line: #d5dae0;
+  --muted: #5b6672;
+  --important: #d99a00;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Yu Gothic UI', 'Meiryo', sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+.layout {
+  height: 100%;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 24px;
+}
+
+h2 {
+  margin: 0;
+  font-size: 16px;
+  line-height: 32px;
+}
+
+.panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.panel.left {
+  align-self: start;
+}
+
+.panel.right {
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* 見出しの行（左: 新しいメモ + 保存ボタン、右: 一覧）は同じ高さにそろえる */
+.phead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  margin-bottom: 8px;
+}
+
+textarea {
+  display: block;
+  width: 100%;
+  min-height: 96px;
+  max-height: calc(100vh - 220px);
+  resize: none;
+  overflow-y: auto;
+  font: inherit;
+  color: inherit;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+textarea:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+.under {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--text);
+  padding: 4px 14px;
+}
+
+button:hover:not(:disabled) {
+  background: #eef1f4;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+button.primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  font-size: 15px;
+  line-height: 22px;
+  padding: 3px 22px;
+}
+
+button.primary:hover:not(:disabled) {
+  background: #094a8c;
+}
+
+.result {
+  min-height: 24px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* 一覧: 右にスクロールバーを常に表示。件数が増えても、一覧だけがスクロールする */
+.list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: scroll;
+  padding-right: 8px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px 16px 18px;
+  margin-bottom: 14px;
+  cursor: pointer;
+}
+
+.card:hover {
+  border-color: #a9b1bb;
+}
+
+.card.important {
+  border-left: 4px solid var(--important);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+}
+
+.date {
+  font-size: 13px;
+  color: var(--muted);
+  margin-right: auto;
+}
+
+.body {
+  margin: 10px 0 0;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.card.open .body {
+  display: block;
+  overflow: visible;
+}
+
+button.more {
+  display: block;
+  border: none;
+  background: none;
+  padding: 0;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--primary);
+}
+
+button.more:hover:not(:disabled) {
+  background: none;
+  text-decoration: underline;
+}
+
+.empty {
+  text-align: center;
+  color: var(--muted);
+  padding: 32px 0;
+}
+
+.error {
+  color: var(--danger);
+  font-size: 14px;
+  margin: 8px 0 0;
+}
