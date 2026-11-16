@@ -58,9 +58,9 @@
 
 | サーバー | ポート | 起動方法 |
 |---|---|---|
-| 画面（Vite） | 5173 | `npm run dev` |
-| API（Spring Boot） | 8080 | `./gradlew bootRun` |
-| DB（PostgreSQL） | 5432 | （環境ができたら書く） |
+| 画面（Vite） | 5173 | `frontend/` で `npm run dev` |
+| API（Spring Boot） | 8080 | `backend/` で `./gradlew bootRun` |
+| DB（PostgreSQL） | 5432 | `docker compose up -d`（リポジトリ直下。`.env` が必要） |
 
 - 別のポートで一時的に起動しない（`--port`、`PORT=` などでポートを変えない）。
 - ポートの競合が起きたら、使っているプロセスを調べて（`Get-NetTCPConnection -LocalPort <ポート> -State Listen`）、前に起動したこのアプリのものなら止める。関係なさそうなプロセスは、止める前にユーザーに確認する。
