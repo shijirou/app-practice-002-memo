@@ -25,6 +25,9 @@ hs_err_pid*
 node_modules/
 dist/
 
+# Claude Code の個人設定（許可したコマンドなどが入る。共有しない）
+.claude/settings.local.json
+
 # エディタ・OS
 .vscode/
 .idea/
