@@ -14,11 +14,18 @@ const memo = (id, body, createdAt = '2026-11-16T01:30:00Z') => ({
   updatedAt: createdAt,
 })
 
-// fetch を差し替える。GET は一覧、POST は登録として返す
-function mockApi({ list = [], post } = {}) {
+// fetch を差し替える。サーバーの代わりに、メモの置き場（store）を持つ。
+// GET は一覧（list が関数なら、その返事）、POST は登録（成功したら置き場の先頭に足す）。
+// existing: 最初からサーバーにあるメモ
+function mockApi({ list, existing = [], post } = {}) {
+  const store = Array.isArray(list) ? [...list] : [...existing]
   return vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, options) => {
-    if (options?.method === 'POST') return post ? post(options) : json(memo(99, 'x'), 201)
-    return typeof list === 'function' ? list() : json(list)
+    if (options?.method === 'POST') {
+      const response = post ? await post(options) : json(memo(99, 'x'), 201)
+      if (response.status === 201) store.unshift(await response.clone().json())
+      return response
+    }
+    return typeof list === 'function' ? list(store) : json(store)
   })
 }
 
@@ -90,6 +97,69 @@ describe('登録（F1）', () => {
     const postCall = fetchSpy.mock.calls.find(([, options]) => options?.method === 'POST')
     expect(postCall[0]).toBe('/api/memos')
     expect(JSON.parse(postCall[1].body)).toEqual({ body: '新しいメモ' }) // 前後の空白は取り除く
+  })
+
+  it('最初の読み込みに失敗していても、保存すると、前からあるメモも含めて一覧を出し直す', async () => {
+    const user = userEvent.setup()
+    let calls = 0
+    mockApi({
+      existing: [memo(1, '前からあるメモ')],
+      post: () => json(memo(2, '新しいメモ'), 201),
+      list: (store) => {
+        calls += 1
+        return calls === 1 ? json({ message: 'エラーが起きました' }, 500) : json(store)
+      },
+    })
+    render(<App />)
+    expect(await screen.findByRole('alert')).toHaveTextContent('エラーが起きました')
+
+    await user.type(textbox(), '新しいメモ')
+    await user.click(saveButton())
+
+    // 「全1件（新しいメモだけ）」にならず、前からあるメモも見える
+    expect(await screen.findByText('前からあるメモ')).toBeInTheDocument()
+    expect(screen.getByText('新しいメモ', { selector: '.body' })).toBeInTheDocument()
+    expect(screen.getByText('全2件')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('保存している間に打った続きの文章は、消さない', async () => {
+    const user = userEvent.setup()
+    let release
+    mockApi({
+      post: () =>
+        new Promise((resolve) => {
+          release = () => resolve(json(memo(1, '最初の文章'), 201))
+        }),
+    })
+    render(<App />)
+    await screen.findByText('メモはまだありません')
+
+    await user.type(textbox(), '最初の文章')
+    await user.click(saveButton()) // 保存中（返事はまだ来ない）
+    await user.type(textbox(), '続き')
+    release()
+
+    expect(await screen.findByRole('article')).toHaveTextContent('最初の文章')
+    expect(textbox()).toHaveValue('最初の文章続き')
+  })
+
+  it('1000 文字を超えたら、切り捨てずに知らせ、保存できない', async () => {
+    const user = userEvent.setup()
+    mockApi()
+    render(<App />)
+    await screen.findByText('メモはまだありません')
+
+    await user.click(textbox())
+    await user.paste('あ'.repeat(1001))
+
+    expect(textbox()).toHaveValue('あ'.repeat(1001)) // 勝手に切り捨てない
+    expect(screen.getByText('1001 / 1000 文字')).toBeInTheDocument()
+    expect(screen.getByText(/1000 文字を超えています/)).toBeInTheDocument()
+    expect(saveButton()).toBeDisabled()
+
+    await user.keyboard('{Backspace}')
+    expect(saveButton()).toBeEnabled()
   })
 
   it('Ctrl+Enter でも保存できる', async () => {

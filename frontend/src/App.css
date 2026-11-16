@@ -101,6 +101,11 @@ textarea:focus {
   margin-top: 6px;
 }
 
+.under .over {
+  color: var(--danger);
+  font-weight: bold;
+}
+
 button {
   font: inherit;
   cursor: pointer;

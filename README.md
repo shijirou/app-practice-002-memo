@@ -38,8 +38,8 @@ npm run dev                # 画面（frontend/ で）
 画面と API は、起動したターミナルで `Ctrl + C`。DB は `docker compose down`（メモは残る。消すときは `docker compose down -v`）。
 
 ### テスト・チェック
-- API: `backend/` で `./gradlew test`（本物の PostgreSQL を Docker で起動して確かめる。11 件）
-- 画面: `frontend/` で `npm test`（15 件）・`npm run lint`・`npm run build`
+- API: `backend/` で `./gradlew test`（本物の PostgreSQL を Docker で起動して確かめる。18 件）
+- 画面: `frontend/` で `npm test`（19 件）・`npm run lint`・`npm run build`
 
 ### 今の使い方（スライス 1）
 - 左の「新しいメモ」に書いて「保存」（または Ctrl+Enter）。開いた直後から入力欄にカーソルがある。
@@ -72,7 +72,7 @@ React + Vite（画面・5173）、Spring Boot（API・8080）、PostgreSQL（DB�
 - 2026-11-16: 技術スタック（バージョン一覧）を作成（#5）。
 - 2026-11-16: 画面モック（HTML 1 ファイル）を作り、確認しながら調整した。重要の印・曜日・全文の開閉などを設計ドキュメントに反映（#7）。
 - 2026-11-16: 品質チェック 1 回目（設計ドキュメントとモック）。まちがい 3 件・標準から外れている所 4 件を直し、設計の決めごと（日時・失敗の返し方など）を補った（#9）。結果は[品質チェックの記録](docs/quality-review.md)。
-- 2026-11-16: スライス 1（登録・一覧）を縦切りで作成（#13）。DB（Docker の PostgreSQL・Flyway）・API（Spring Boot）・画面（React + Vite）が通しで動く。API テスト 11 件・画面テスト 15 件、lint・ビルドとも成功。起動ログとブラウザのコンソールにエラーなし。
+- 2026-11-16: スライス 1（登録・一覧）を縦切りで作成（#13）。DB（Docker の PostgreSQL・Flyway）・API（Spring Boot）・画面（React + Vite）が通しで動く。API テスト 18 件・画面テスト 19 件、lint・ビルドとも成功。起動ログとブラウザのコンソールにエラーなし。
 - 2026-11-16: 品質チェックの方針を決めた。コードはしっかり、設計は軽く、使い捨てのモックは行わない（#11）。
 
 ## 次回の再開メモ
@@ -87,5 +87,5 @@ React + Vite（画面・5173）、Spring Boot（API・8080）、PostgreSQL（DB�
 
   次回はコードができてから行う。残りの確認メモは [品質チェックの記録](docs/quality-review.md) の I-6〜I-8。
 - **次回はここから**: スライス 2（検索と重要 F3・F6）→ スライス 3（編集と削除 F4・F5）。各スライスは、API・画面・テストを一緒に作り、起動ログ・ブラウザのコンソール・異常系のエラーを確認してから PR にする。画面はモック（`docs/mock/index.html`）に合わせる。
-- **気づいた点（スライス 2 までに直す）**: 登録 API が `{"body": 123}`（本文が数字）を文字列 "123" として受け付けている。設計では文字列だけのはずなので、400 にする（JSON の型の厳しさの設定）。CI（GitHub Actions）はまだ無いので、足す。
+- **残っている確認メモ**: CI（GitHub Actions）はまだ無いので、足す。API のテストは Docker が動いていないと動かない（Testcontainers）。
 - **要確認の決定事項**: 本文のみ（タイトルなし）、削除は元に戻せない、保存先は DB（PostgreSQL）。[要件定義書](docs/requirements.md)の「決定事項」を参照。

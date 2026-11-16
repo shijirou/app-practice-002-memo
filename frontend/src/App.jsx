@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createMemo, fetchMemos } from './api.js'
 import MemoCard from './MemoCard.jsx'
 import MemoForm from './MemoForm.jsx'
@@ -6,35 +6,43 @@ import MemoForm from './MemoForm.jsx'
 export default function App() {
   const [memos, setMemos] = useState(null) // null = まだ読み込んでいない
   const [loadError, setLoadError] = useState('')
+  // 読み込みの順番の札。古い読み込みの結果が、新しい結果を上書きしないようにする
+  const latest = useRef(0)
 
-  // 最初の読み込み（画面が消えたあとに、結果で画面を変えないよう、ignore で止める）
+  // 最初の読み込み（画面が消えたあとに、結果で画面を変えないよう、札で止める）
   useEffect(() => {
-    let ignore = false
+    const ticket = ++latest.current
     fetchMemos()
       .then((list) => {
-        if (!ignore) setMemos(list)
+        if (ticket === latest.current) setMemos(list)
       })
       .catch((e) => {
-        if (!ignore) setLoadError(e.message)
+        if (ticket === latest.current) setLoadError(e.message)
       })
     return () => {
-      ignore = true
+      latest.current += 1
     }
   }, [])
 
-  // 「再読み込み」ボタン。読み込みに失敗しても、すでに表示しているメモは消さない
-  async function reload() {
+  // 一覧を読み直す。失敗しても、すでに表示しているメモは消さない
+  async function reload(justCreated) {
+    const ticket = ++latest.current
     setLoadError('')
     try {
-      setMemos(await fetchMemos())
+      const list = await fetchMemos()
+      if (ticket === latest.current) setMemos(list)
     } catch (e) {
+      if (ticket !== latest.current) return
       setLoadError(e.message)
+      // 保存はできているので、いま見えている一覧には、できるだけ足しておく
+      if (justCreated) setMemos((prev) => (prev ? [justCreated, ...prev] : prev))
     }
   }
 
+  // 保存したあとは、一覧を読み直す（最初の読み込みに失敗していたときも、古いメモが消えて見えないように）
   async function handleCreate(body) {
     const memo = await createMemo(body)
-    setMemos((prev) => [memo, ...(prev ?? [])])
+    await reload(memo)
   }
 
   return (
@@ -51,7 +59,7 @@ export default function App() {
         {loadError && (
           <div className="error" role="alert">
             {loadError}{' '}
-            <button type="button" onClick={reload}>
+            <button type="button" onClick={() => reload()}>
               再読み込み
             </button>
           </div>

@@ -7,9 +7,24 @@ export default function MemoCard({ memo }) {
   const [truncated, setTruncated] = useState(false)
   const bodyRef = useRef(null)
 
+  // 3 行で切れているかを調べる。本文が変わったときだけでなく、
+  // ウィンドウの幅の変化・文字の読み込み（フォントの切り替わり）でも調べ直す
   useLayoutEffect(() => {
     const el = bodyRef.current
-    if (!open) setTruncated(el.scrollHeight > el.clientHeight + 1)
+    if (open) return undefined
+    let cancelled = false
+    const measure = () => {
+      if (!cancelled) setTruncated(el.scrollHeight > el.clientHeight + 1)
+    }
+    measure()
+    document.fonts?.ready.then(measure)
+    if (typeof ResizeObserver === 'undefined') return () => (cancelled = true)
+    const observer = new ResizeObserver(measure)
+    observer.observe(el)
+    return () => {
+      cancelled = true
+      observer.disconnect()
+    }
   }, [memo.body, open])
 
   function toggle() {

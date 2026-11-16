@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { countChars, formatDateTime, limitChars } from './format.js'
+import { countChars, formatDateTime } from './format.js'
 
 describe('formatDateTime', () => {
   it('日本時間で、曜日つきの形にする', () => {
@@ -17,13 +17,8 @@ describe('formatDateTime', () => {
   })
 })
 
-describe('countChars / limitChars', () => {
+describe('countChars', () => {
   it('絵文字は 1 文字と数える', () => {
     expect(countChars('😀😀あ')).toBe(3)
-  })
-
-  it('上限を超えた分は切り捨てる（絵文字を途中で割らない）', () => {
-    expect(limitChars('😀😀😀', 2)).toBe('😀😀')
-    expect(limitChars('あい', 5)).toBe('あい')
   })
 })

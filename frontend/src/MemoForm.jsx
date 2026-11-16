@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { countChars, limitChars } from './format.js'
+import { countChars } from './format.js'
 
 const MAX_CHARS = 1000
 
@@ -22,15 +22,19 @@ export default function MemoForm({ onCreate }) {
     el.style.height = `${el.scrollHeight + 2}px`
   }, [text])
 
-  const canSave = text.trim().length > 0 && !saving
+  const count = countChars(text)
+  const overLimit = count > MAX_CHARS
+  const canSave = text.trim().length > 0 && !overLimit && !saving
 
   async function save() {
     if (!canSave) return
+    const sent = text.trim()
     setSaving(true)
     setError('')
     try {
-      await onCreate(text.trim())
-      setText('')
+      await onCreate(sent)
+      // 保存中に続きを打っていたら、その文章は消さない（送った文章のままのときだけ空にする）
+      setText((current) => (current.trim() === sent ? '' : current))
       textareaRef.current.focus()
     } catch (e) {
       setError(e.message)
@@ -57,15 +61,21 @@ export default function MemoForm({ onCreate }) {
         value={text}
         placeholder="ここに入力"
         aria-label="新しいメモの本文"
-        onChange={(e) => setText(limitChars(e.target.value, MAX_CHARS))}
+        onChange={(e) => setText(e.target.value)}
         onKeyDown={handleKeyDown}
       />
       <div className="under">
-        <span>
-          {countChars(text)} / {MAX_CHARS} 文字
+        <span className={overLimit ? 'over' : undefined}>
+          {count} / {MAX_CHARS} 文字
         </span>
         <span>Ctrl + Enter でも保存</span>
       </div>
+      {/* 貼り付けなどで上限を超えても、勝手に切り捨てない。減らすまで保存できない */}
+      {overLimit && (
+        <p className="error">
+          {MAX_CHARS} 文字を超えています。{count - MAX_CHARS} 文字減らすと保存できます。
+        </p>
+      )}
       {error && (
         <p className="error" role="alert">
           {error}

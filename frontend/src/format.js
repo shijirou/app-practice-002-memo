@@ -20,7 +20,3 @@ export function countChars(text) {
   return Array.from(text).length
 }
 
-export function limitChars(text, max) {
-  const chars = Array.from(text)
-  return chars.length > max ? chars.slice(0, max).join('') : text
-}
