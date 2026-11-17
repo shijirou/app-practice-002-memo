@@ -183,6 +183,23 @@ describe('編集の細かい動き', () => {
     expect(apiCalls(fetchSpy, 'PUT')).toHaveLength(0) // 保存もされていない
   })
 
+  it('編集を終えたら（Esc・保存とも）、カーソルが「編集」ボタンに戻る', async () => {
+    const user = userEvent.setup()
+    mockApi({ list: [memo(1, '元の本文')] })
+    render(<App />)
+    await screen.findByText('元の本文')
+
+    await user.click(screen.getByRole('button', { name: '編集' }))
+    await user.keyboard('{Escape}')
+    expect(screen.getByRole('button', { name: '編集' })).toHaveFocus()
+
+    await user.click(screen.getByRole('button', { name: '編集' }))
+    await user.type(editBox(), '（直した）')
+    await user.click(cardSave())
+    await screen.findByText('元の本文（直した）')
+    expect(screen.getByRole('button', { name: '編集' })).toHaveFocus()
+  })
+
   it('文字数の上限は、前後の空白を取り除いたあとで数える（末尾の改行だけで超えない）', async () => {
     const user = userEvent.setup()
     mockApi({ list: [memo(1, '元の本文')] })

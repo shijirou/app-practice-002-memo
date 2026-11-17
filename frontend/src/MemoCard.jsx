@@ -16,6 +16,8 @@ export default function MemoCard({ memo, keyword = '', onToggleImportant, onUpda
   const [saving, setSaving] = useState(false)
   const bodyRef = useRef(null)
   const textareaRef = useRef(null)
+  const editButtonRef = useRef(null)
+  const returnFocus = useRef(false) // 編集を終えたとき、「編集」ボタンにカーソルを戻すか
 
   // 3 行で切れているかを調べる。本文が変わったときだけでなく、
   // ウィンドウの幅の変化・文字の読み込み（フォントの切り替わり）でも調べ直す
@@ -46,6 +48,14 @@ export default function MemoCard({ memo, keyword = '', onToggleImportant, onUpda
     }
   }, [editing])
 
+  // 編集を終えたら、「編集」ボタンにカーソルを戻す（ボタンが作り直されて、キーボードの位置が失われないように）
+  useEffect(() => {
+    if (!editing && returnFocus.current) {
+      returnFocus.current = false
+      editButtonRef.current?.focus()
+    }
+  }, [editing])
+
   // 文字が増えたら、入力欄を伸ばす（上限は CSS の max-height。超えたら中でスクロール）
   useLayoutEffect(() => {
     const el = textareaRef.current
@@ -67,6 +77,7 @@ export default function MemoCard({ memo, keyword = '', onToggleImportant, onUpda
   }
 
   function cancelEdit() {
+    returnFocus.current = true
     setEditing(false)
     setError('')
   }
@@ -82,6 +93,7 @@ export default function MemoCard({ memo, keyword = '', onToggleImportant, onUpda
     setError('')
     try {
       await onUpdate(memo, draft.trim())
+      returnFocus.current = true
       setEditing(false)
     } catch (e) {
       // 失敗しても、直していた文章は消さない
@@ -141,6 +153,7 @@ export default function MemoCard({ memo, keyword = '', onToggleImportant, onUpda
             <button
               type="button"
               className="edit"
+              ref={editButtonRef}
               disabled={!onUpdate}
               onClick={(e) => {
                 e.stopPropagation()
