@@ -25,8 +25,21 @@ public class MemoService {
     }
 
     @Transactional
-    public MemoResponse create(MemoCreateRequest request) {
+    public MemoResponse create(MemoBodyRequest request) {
         return MemoResponse.from(repository.save(new Memo(request.body())));
+    }
+
+    @Transactional
+    public MemoResponse update(Long id, MemoBodyRequest request) {
+        Memo memo = repository.findById(id).orElseThrow(() -> new MemoNotFoundException(id));
+        memo.edit(request.body());
+        return MemoResponse.from(memo);
+    }
+
+    @Transactional
+    public void delete(Long id) {
+        Memo memo = repository.findById(id).orElseThrow(() -> new MemoNotFoundException(id));
+        repository.delete(memo);
     }
 
     @Transactional

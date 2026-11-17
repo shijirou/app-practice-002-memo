@@ -276,3 +276,73 @@ button.only-important[aria-pressed='true']:hover:not(:disabled) {
 mark {
   background: #ffe58a;
 }
+
+/* 編集・削除。重要と同じく小さく薄く。削除は少し離し、カーソルを合わせると赤くなる */
+.head button.edit,
+.head button.del,
+.head button.savebtn {
+  border: none;
+  background: transparent;
+  padding: 0 8px;
+  font-size: 13px;
+  color: #5f6975;
+  line-height: 26px;
+}
+
+.head button.del {
+  margin-left: 8px;
+}
+
+.head button.edit:hover:not(:disabled) {
+  background: #eef1f4;
+  color: var(--text);
+}
+
+.head button.del:hover:not(:disabled) {
+  background: #eef1f4;
+  color: var(--danger);
+}
+
+/* 「編集」と「保存」は同じ大きさ・同じ位置（連打で「削除」に当たらない） */
+.head button.edit,
+.head button.savebtn {
+  width: 48px;
+  padding: 0;
+}
+
+.head button.savebtn {
+  background: var(--primary);
+  color: #fff;
+}
+
+.head button.savebtn:hover:not(:disabled) {
+  background: #094a8c;
+  color: #fff;
+}
+
+.head .gap {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.card.editing,
+.card.editing:hover {
+  cursor: default;
+}
+
+.card textarea {
+  min-height: 100px;
+  max-height: 40vh;
+  margin: 4px 0 0;
+}
+
+.card .error {
+  margin: 4px 0 0;
+  font-size: 13px;
+}
+
+.esc {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 4px 0 0;
+}

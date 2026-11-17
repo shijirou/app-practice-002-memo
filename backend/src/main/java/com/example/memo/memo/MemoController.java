@@ -3,6 +3,7 @@ package com.example.memo.memo;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -37,6 +38,19 @@ public class MemoController {
         return service.counts();
     }
 
+    /** 編集（F4）。本文だけを直す。重要の印は、別の窓口で切り替える。 */
+    @PutMapping("/{id}")
+    public MemoResponse update(@PathVariable Long id, @Valid @RequestBody MemoBodyRequest request) {
+        return service.update(id, request);
+    }
+
+    /** 削除（F5）。元に戻せない。 */
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@PathVariable Long id) {
+        service.delete(id);
+    }
+
     /** 重要の付け外し（F6）。 */
     @PutMapping("/{id}/important")
     public MemoResponse setImportant(@PathVariable Long id, @Valid @RequestBody ImportantRequest request) {
@@ -46,7 +60,7 @@ public class MemoController {
     /** 登録（F1）。 */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public MemoResponse create(@Valid @RequestBody MemoCreateRequest request) {
+    public MemoResponse create(@Valid @RequestBody MemoBodyRequest request) {
         return service.create(request);
     }
 }

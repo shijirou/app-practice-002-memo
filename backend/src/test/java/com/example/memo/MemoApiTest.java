@@ -316,4 +316,103 @@ class MemoApiTest {
 		mockMvc.perform(get("/api/memos").param("important", "maybe")).andExpect(status().isBadRequest())
 				.andExpect(jsonPath("$.message").value("リクエストが正しくありません"));
 	}
+
+	// ---- 編集（F4）・削除（F5） ----
+
+	private ResultActions putBody(Object id, String json) throws Exception {
+		return mockMvc.perform(put("/api/memos/" + id).contentType(MediaType.APPLICATION_JSON).content(json));
+	}
+
+	@Test
+	void 編集すると本文と更新日時が変わり_作成日時と重要と並び順は変わらない() throws Exception {
+		int first = postAndGetId("直す前");
+		postMemo("2つ目");
+		putImportant(first, "{\"important\":true}");
+		String created = JsonPath.read(
+				mockMvc.perform(get("/api/memos")).andReturn().getResponse().getContentAsString(), "$[1].createdAt");
+		String updatedBefore = JsonPath.read(
+				mockMvc.perform(get("/api/memos")).andReturn().getResponse().getContentAsString(), "$[1].updatedAt");
+
+		String updatedAfter = JsonPath.read(
+				putBody(first, "{\"body\":\"  直した後  \"}").andExpect(status().isOk())
+						.andExpect(jsonPath("$.id").value(first))
+						.andExpect(jsonPath("$.body").value("直した後"))
+						.andExpect(jsonPath("$.important").value(true))
+						.andExpect(jsonPath("$.createdAt").value(created))
+						.andReturn().getResponse().getContentAsString(),
+				"$.updatedAt");
+		org.assertj.core.api.Assertions.assertThat(updatedAfter).isNotEqualTo(updatedBefore);
+
+		mockMvc.perform(get("/api/memos"))
+				.andExpect(jsonPath("$[0].body").value("2つ目"))
+				.andExpect(jsonPath("$[1].body").value("直した後"))
+				.andExpect(jsonPath("$[1].updatedAt").value(updatedAfter));
+	}
+
+	@Test
+	void 同じ本文で編集しても更新日時は変わらない() throws Exception {
+		int id = postAndGetId("そのまま");
+		String before = JsonPath.read(
+				mockMvc.perform(get("/api/memos")).andReturn().getResponse().getContentAsString(), "$[0].updatedAt");
+		putBody(id, "{\"body\":\"そのまま\"}").andExpect(status().isOk())
+				.andExpect(jsonPath("$.updatedAt").value(before));
+	}
+
+	@Test
+	void 編集した本文は検索に反映される() throws Exception {
+		int id = postAndGetId("古い語");
+		putBody(id, "{\"body\":\"新しい語\"}").andExpect(status().isOk());
+		mockMvc.perform(get("/api/memos").param("keyword", "古い語")).andExpect(jsonPath("$", hasSize(0)));
+		mockMvc.perform(get("/api/memos").param("keyword", "新しい語")).andExpect(jsonPath("$", hasSize(1)));
+	}
+
+	@Test
+	void 編集で本文が空_または無ければ400で_元の本文は変わらない() throws Exception {
+		int id = postAndGetId("元の本文");
+		putBody(id, "{\"body\":\"   \"}").andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.message").value("本文を入力してください"));
+		putBody(id, "{}").andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.message").value("本文を入力してください"));
+		mockMvc.perform(get("/api/memos")).andExpect(jsonPath("$[0].body").value("元の本文"));
+	}
+
+	@Test
+	void 編集で本文が1001文字なら400_1000文字ちょうどなら200() throws Exception {
+		int id = postAndGetId("元の本文");
+		putBody(id, "{\"body\":\"" + "あ".repeat(1001) + "\"}").andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.message").value("本文は 1000 文字以内で入力してください"));
+		putBody(id, "{\"body\":\"" + "あ".repeat(1000) + "\"}").andExpect(status().isOk());
+	}
+
+	@Test
+	void 存在しないidの編集は404_idが数字でなければ400() throws Exception {
+		putBody(999999, "{\"body\":\"x\"}").andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.message").value("メモが見つかりません"));
+		putBody("abc", "{\"body\":\"x\"}").andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.message").value("リクエストが正しくありません"));
+	}
+
+	@Test
+	void 削除すると204で消え_件数にも反映され_2回目は404() throws Exception {
+		int id = postAndGetId("消すメモ");
+		postMemo("残すメモ");
+		putImportant(id, "{\"important\":true}");
+
+		mockMvc.perform(delete("/api/memos/" + id)).andExpect(status().isNoContent());
+
+		mockMvc.perform(get("/api/memos")).andExpect(jsonPath("$", hasSize(1)))
+				.andExpect(jsonPath("$[0].body").value("残すメモ"));
+		mockMvc.perform(get("/api/memos/counts"))
+				.andExpect(jsonPath("$.total").value(1)).andExpect(jsonPath("$.important").value(0));
+		mockMvc.perform(delete("/api/memos/" + id)).andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.message").value("メモが見つかりません"));
+	}
+
+	@Test
+	void 存在しないidの削除は404_idが数字でなければ400() throws Exception {
+		mockMvc.perform(delete("/api/memos/999999")).andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.message").value("メモが見つかりません"));
+		mockMvc.perform(delete("/api/memos/abc")).andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.message").value("リクエストが正しくありません"));
+	}
 }

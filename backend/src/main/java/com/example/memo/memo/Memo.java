@@ -62,6 +62,15 @@ public class Memo {
         return updatedAt;
     }
 
+    /** 本文の編集。本文が変わったときだけ、更新日時を更新する（DB はマイクロ秒までなので、丸めておく）。 */
+    public void edit(String newBody) {
+        if (newBody.equals(this.body)) {
+            return;
+        }
+        this.body = newBody;
+        this.updatedAt = Instant.now().truncatedTo(ChronoUnit.MICROS);
+    }
+
     /** 重要の付け外し。本文の編集ではないので、更新日時は変えない。 */
     public void setImportant(boolean important) {
         this.important = important;
