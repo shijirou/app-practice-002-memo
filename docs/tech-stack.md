@@ -23,6 +23,7 @@
 | @vitejs/plugin-react | 6.3.0 | Vite で React を使うための追加部品 |
 | oxlint | 1.94.0 | コードの書き方をチェックする（lint） |
 | Vitest | 5.1.0 | 自動テストを動かす |
+| @vitest/coverage-v8 | 5.1.0 | テストの網羅率（テストがコードのどれだけを実行したか）を測る（`npm run coverage`）。Vitest と同じ版にそろえる |
 | jsdom | 31.0.1 | テストの中で、ブラウザの代わりをする |
 | @testing-library/react | 16.3.3 | テストで React の画面を表示して操作する |
 | @testing-library/user-event | 14.6.12 | テストで、クリックや入力など人の操作を再現する |
@@ -41,6 +42,7 @@
 | PostgreSQL JDBC ドライバー | 42.7.14 | Java から PostgreSQL につなぐ |
 | Testcontainers | 2.0.5 | テストのときだけ、使い捨ての PostgreSQL を Docker で起動する |
 | JUnit | 6.0.3 | API の自動テスト |
+| JaCoCo | 0.8.16 | テストの網羅率を測る（`./gradlew test` のあとに、自動でレポートを作る） |
 
 Spring Boot が管理する部品（Spring Web・Spring Data JPA・テスト用の部品など）の版は、Spring Boot 4.1.2 に合わせて決まる。足すときは、ここに名前を書く。
 
@@ -66,7 +68,7 @@ Spring Boot が管理する部品（Spring Web・Spring Data JPA・テスト用�
 | actions/setup-java | v6（最新 v6.3.0） | Java 25（Temurin）を用意する |
 | gradle/actions（setup-gradle） | v6（最新 v6.4.1） | Gradle のキャッシュ |
 
-版は、大きい番号（v7 など）で指定している。確認日 2026-11-17。
+版は、大きい番号（v7 など）で指定している。確認日 2026-11-17。CI は、画面と API の網羅率を測り、実行ごとの「Summary」に表で出す（測るだけで、低くても失敗にはしない。表を作る小さなスクリプトは `.github/scripts/coverage-summary.mjs`）。
 
 ## ポート
 画面 5173、API 8080、DB 5432（固定。[CLAUDE.md](../CLAUDE.md) 参照）。

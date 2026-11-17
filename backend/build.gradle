@@ -1,5 +1,6 @@
 plugins {
 	id 'java'
+	id 'jacoco'
 	id 'org.springframework.boot' version '4.1.2'
 	id 'io.spring.dependency-management' version '1.1.7'
 }
@@ -34,6 +35,20 @@ dependencies {
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
+// テストの網羅率（テストがコードのどれだけを実行したか）。テストのあとに自動でレポートを作る
+jacoco {
+	toolVersion = '0.8.16'
+}
+
 tasks.named('test') {
 	useJUnitPlatform()
+	finalizedBy 'jacocoTestReport'
+}
+
+tasks.named('jacocoTestReport') {
+	dependsOn tasks.named('test')
+	reports {
+		xml.required = true   // CI が読んで、結果を表にする
+		html.required = true  // 人が見る用（build/reports/jacoco/test/html/index.html）
+	}
 }

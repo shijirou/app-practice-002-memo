@@ -8,5 +8,13 @@ export default defineConfig({
     setupFiles: './src/test-setup.js',
     // 1テストごとに、spyOn などの差し替えを元に戻す
     restoreMocks: true,
+    // 網羅率（テストがコードのどれだけを実行したか）。`npm run coverage` で測る
+    coverage: {
+      provider: 'v8',
+      include: ['src/**'],
+      // テスト自身・テスト用の部品・起動のための 1 ファイルは、測る対象から外す
+      exclude: ['src/**/*.test.{js,jsx}', 'src/test-*.js', 'src/main.jsx'],
+      reporter: ['text', 'json-summary'],
+    },
   },
 })
