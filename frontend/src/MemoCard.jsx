@@ -71,7 +71,8 @@ export default function MemoCard({ memo, keyword = '', onToggleImportant, onUpda
     setError('')
   }
 
-  const count = countChars(draft)
+  // 文字数は、前後の空白を取り除いたあとで数える（API と同じ）
+  const count = countChars(draft.trim())
   const overLimit = count > MAX_CHARS
   const canSave = draft.trim().length > 0 && !overLimit && !saving
 
@@ -91,6 +92,8 @@ export default function MemoCard({ memo, keyword = '', onToggleImportant, onUpda
   }
 
   function handleKeyDown(e) {
+    // 日本語の変換中（確定前）の Esc・Enter は、変換のための操作。取り消しや保存にしない
+    if (e.nativeEvent.isComposing) return
     if (e.key === 'Escape') cancelEdit()
     else if (e.ctrlKey && e.key === 'Enter') saveEdit()
   }

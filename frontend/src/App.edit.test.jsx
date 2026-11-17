@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import App from './App.jsx'
@@ -164,6 +164,60 @@ describe('編集（F4）', () => {
 
     await waitFor(() => expect(screen.getAllByRole('article')).toHaveLength(1))
     expect(screen.getByText('全2件（重要：0件） ／ 表示 1件')).toBeInTheDocument()
+  })
+})
+
+describe('編集の細かい動き', () => {
+  it('日本語の変換中の Esc・Ctrl+Enter では、取り消しも保存もしない', async () => {
+    const user = userEvent.setup()
+    const fetchSpy = mockApi({ list: [memo(1, '元の本文')] })
+    render(<App />)
+    await screen.findByText('元の本文')
+    await user.click(screen.getByRole('button', { name: '編集' }))
+    await user.type(editBox(), '（変換中）')
+
+    fireEvent.keyDown(editBox(), { key: 'Escape', isComposing: true })
+    fireEvent.keyDown(editBox(), { key: 'Enter', ctrlKey: true, isComposing: true })
+
+    expect(editBox()).toHaveValue('元の本文（変換中）') // 取り消されていない
+    expect(apiCalls(fetchSpy, 'PUT')).toHaveLength(0) // 保存もされていない
+  })
+
+  it('文字数の上限は、前後の空白を取り除いたあとで数える（末尾の改行だけで超えない）', async () => {
+    const user = userEvent.setup()
+    mockApi({ list: [memo(1, '元の本文')] })
+    render(<App />)
+    await screen.findByText('元の本文')
+    await user.click(screen.getByRole('button', { name: '編集' }))
+
+    await user.clear(editBox())
+    await user.click(editBox())
+    await user.paste('あ'.repeat(1000) + '\n')
+
+    expect(screen.queryByText(/1000 文字を超えています/)).not.toBeInTheDocument()
+    expect(cardSave()).toBeEnabled()
+  })
+
+  it('保存できたのに一覧の読み直しに失敗しても、保存した本文は表示する', async () => {
+    const user = userEvent.setup()
+    let saved = false
+    mockApi({
+      list: () => (saved ? json({ message: 'エラーが起きました' }, 500) : json([memo(1, '元の本文')])),
+      putMemo: () => {
+        saved = true
+        return json(memo(1, '保存した本文'))
+      },
+    })
+    render(<App />)
+    await screen.findByText('元の本文')
+
+    await user.click(screen.getByRole('button', { name: '編集' }))
+    await user.clear(editBox())
+    await user.type(editBox(), '保存した本文')
+    await user.click(cardSave())
+
+    expect(await screen.findByText('保存した本文')).toBeInTheDocument()
+    expect(screen.queryByRole('textbox', { name: 'メモの本文を編集' })).not.toBeInTheDocument()
   })
 })
 

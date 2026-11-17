@@ -22,7 +22,8 @@ export default function MemoForm({ onCreate }) {
     el.style.height = `${el.scrollHeight + 2}px`
   }, [text])
 
-  const count = countChars(text)
+  // 文字数は、前後の空白を取り除いたあとで数える（API と同じ。末尾の改行だけで上限を超えないように）
+  const count = countChars(text.trim())
   const overLimit = count > MAX_CHARS
   const canSave = text.trim().length > 0 && !overLimit && !saving
 
@@ -44,6 +45,8 @@ export default function MemoForm({ onCreate }) {
   }
 
   function handleKeyDown(e) {
+    // 日本語の変換中（確定前）の Enter は、保存にしない
+    if (e.nativeEvent.isComposing) return
     if (e.ctrlKey && e.key === 'Enter') save()
   }
 

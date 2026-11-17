@@ -84,7 +84,11 @@ export default function App() {
 
   // 編集の保存。失敗したら例外のまま返す（カードが、書いた文章を残してメッセージを出す）
   async function handleUpdate(memo, body) {
-    await updateMemo(memo.id, body)
+    const updated = await updateMemo(memo.id, body)
+    // 読み直しに失敗しても、保存した本文は見えるように、先に一覧へ反映しておく
+    setResult((prev) =>
+      prev ? { ...prev, memos: prev.memos.map((m) => (m.id === updated.id ? updated : m)) } : prev,
+    )
     await reload()
   }
 
