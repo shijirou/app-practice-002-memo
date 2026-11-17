@@ -37,3 +37,8 @@ Thumbs.db
 
 # テストの網羅率の出力（`npm run coverage` で作られる）
 coverage/
+
+# E2E テスト（Playwright）の出力
+playwright-report/
+test-results/
+blob-report/
