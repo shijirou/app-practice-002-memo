@@ -55,6 +55,19 @@ Spring Boot が管理する部品（Spring Web・Spring Data JPA・テスト用�
 | Git | 2.55.0 | 変更の記録 |
 | GitHub CLI（gh） | 2.100.0 | Issue・PR の作成 |
 
+## CI（GitHub Actions）
+`.github/workflows/ci.yml`。PR と main への push のたびに、画面（lint・テスト・ビルド）と API（テスト）を動かす。ジョブ名は `check`。
+
+| 名前 | バージョン | 役割 |
+|---|---|---|
+| 実行環境（ubuntu-latest） | GitHub が提供 | CI を動かす仮想マシン。Docker が入っているので、API のテスト（Testcontainers）も動く |
+| actions/checkout | v7（最新 v7.0.1） | リポジトリのコードを取ってくる |
+| actions/setup-node | v7（最新 v7.1.0） | Node.js 24 を用意し、npm の部品をキャッシュする |
+| actions/setup-java | v6（最新 v6.3.0） | Java 25（Temurin）を用意する |
+| gradle/actions（setup-gradle） | v6（最新 v6.4.1） | Gradle のキャッシュ |
+
+版は、大きい番号（v7 など）で指定している。確認日 2026-11-17。
+
 ## ポート
 画面 5173、API 8080、DB 5432（固定。[CLAUDE.md](../CLAUDE.md) 参照）。
 
@@ -63,5 +76,4 @@ Spring Boot が管理する部品（Spring Web・Spring Data JPA・テスト用�
 - Spring Boot は 4.2.0 が RC（正式前）の段階なので使わず、正式版の 4.1.2 にした。4.2 が正式になったら上げることを検討する。
 - Gradle と PostgreSQL は PC に入れていない。Gradle は Wrapper（`backend/gradlew`）、PostgreSQL は Docker で動かしている。
 - Spring Boot が管理する部品（Hibernate・Jackson・Tomcat など）の版は、Spring Boot に合わせて決まる。`./gradlew dependencies` で確認した値を書いている。
-- GitHub Actions（CI）を足したら、`actions/checkout` などの版もここに書く。
 - 部品の正確なバージョンは、作成後は `package-lock.json` などに固定される。そのとき、この表と食い違っていないか確認する。
