@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { createMemo, fetchCounts, fetchMemos, setImportant } from './api.js'
+import { createMemo, deleteMemo, fetchCounts, fetchMemos, setImportant, updateMemo } from './api.js'
 import MemoCard from './MemoCard.jsx'
 import MemoForm from './MemoForm.jsx'
 
@@ -82,6 +82,27 @@ export default function App() {
     await reload(memo)
   }
 
+  // 編集の保存。失敗したら例外のまま返す（カードが、書いた文章を残してメッセージを出す）
+  async function handleUpdate(memo, body) {
+    const updated = await updateMemo(memo.id, body)
+    // 読み直しに失敗しても、保存した本文は見えるように、先に一覧へ反映しておく
+    setResult((prev) =>
+      prev ? { ...prev, memos: prev.memos.map((m) => (m.id === updated.id ? updated : m)) } : prev,
+    )
+    await reload()
+  }
+
+  // 削除（確認はカード側で済んでいる）。すでに消えていた（404）ときも、読み直して一覧を合わせる
+  async function handleDelete(memo) {
+    setActionError('')
+    try {
+      await deleteMemo(memo.id)
+    } catch (e) {
+      setActionError(e.message)
+    }
+    await reload()
+  }
+
   async function handleToggleImportant(memo) {
     setActionError('')
     try {
@@ -148,7 +169,14 @@ export default function App() {
             <div className="empty">{result.filtered ? '見つかりませんでした' : 'メモはまだありません'}</div>
           )}
           {memos?.map((memo) => (
-            <MemoCard key={memo.id} memo={memo} keyword={result.keyword} onToggleImportant={handleToggleImportant} />
+            <MemoCard
+              key={memo.id}
+              memo={memo}
+              keyword={result.keyword}
+              onToggleImportant={handleToggleImportant}
+              onUpdate={handleUpdate}
+              onDelete={handleDelete}
+            />
           ))}
         </div>
       </section>

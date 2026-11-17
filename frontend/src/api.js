@@ -20,6 +20,7 @@ async function request(path, options) {
     }
     throw new Error(message)
   }
+  if (response.status === 204) return null // 削除（中身なし）
   return response.json()
 }
 
@@ -29,6 +30,20 @@ export function createMemo(body) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ body }),
   })
+}
+
+// 編集（F4）。本文だけを直す
+export function updateMemo(id, body) {
+  return request(`/api/memos/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ body }),
+  })
+}
+
+// 削除（F5）
+export function deleteMemo(id) {
+  return request(`/api/memos/${id}`, { method: 'DELETE' })
 }
 
 // 一覧（F2）・検索（F3）・重要のみ（F6）。keyword が空なら全件、important が true なら重要だけ。
