@@ -225,3 +225,54 @@ button.more:hover:not(:disabled) {
   font-size: 14px;
   margin: 8px 0 0;
 }
+
+/* 検索の行: 検索欄 + 重要のみボタン */
+.searchrow {
+  display: flex;
+  gap: 8px;
+}
+
+input[type='search'] {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  color: inherit;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+input[type='search']:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+}
+
+/* 「重要のみ」の縁は、重要なメモの左端の線と同じ色。押している間は薄い黄色 */
+button.only-important {
+  border: 2px solid var(--important);
+}
+
+button.only-important[aria-pressed='true'],
+button.only-important[aria-pressed='true']:hover:not(:disabled) {
+  background: #fff3cf;
+}
+
+/* 重要の付け外しは、小さく薄く。カーソルを合わせると濃くなる */
+.head button.imp {
+  border: none;
+  background: transparent;
+  padding: 0 8px;
+  font-size: 13px;
+  color: #5f6975;
+  line-height: 26px;
+}
+
+.head button.imp:hover:not(:disabled) {
+  background: #eef1f4;
+  color: var(--text);
+}
+
+mark {
+  background: #ffe58a;
+}

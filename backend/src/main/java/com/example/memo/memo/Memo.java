@@ -61,4 +61,9 @@ public class Memo {
     public Instant getUpdatedAt() {
         return updatedAt;
     }
+
+    /** 重要の付け外し。本文の編集ではないので、更新日時は変えない。 */
+    public void setImportant(boolean important) {
+        this.important = important;
+    }
 }

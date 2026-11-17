@@ -1,5 +1,6 @@
 package com.example.memo.error;
 
+import com.example.memo.memo.MemoNotFoundException;
 import java.util.Comparator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +52,11 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
             log.error("サーバー側のエラー", ex);
         }
         return ResponseEntity.status(statusCode).headers(headers).body(new ErrorResponse(message));
+    }
+
+    @ExceptionHandler(MemoNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleMemoNotFound(MemoNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse("メモが見つかりません"));
     }
 
     @ExceptionHandler(Exception.class)

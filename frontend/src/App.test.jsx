@@ -2,32 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App.jsx'
-
-const json = (body, status = 200) =>
-  new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } })
-
-const memo = (id, body, createdAt = '2026-11-16T01:30:00Z') => ({
-  id,
-  body,
-  important: false,
-  createdAt,
-  updatedAt: createdAt,
-})
-
-// fetch を差し替える。サーバーの代わりに、メモの置き場（store）を持つ。
-// GET は一覧（list が関数なら、その返事）、POST は登録（成功したら置き場の先頭に足す）。
-// existing: 最初からサーバーにあるメモ
-function mockApi({ list, existing = [], post } = {}) {
-  const store = Array.isArray(list) ? [...list] : [...existing]
-  return vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, options) => {
-    if (options?.method === 'POST') {
-      const response = post ? await post(options) : json(memo(99, 'x'), 201)
-      if (response.status === 201) store.unshift(await response.clone().json())
-      return response
-    }
-    return typeof list === 'function' ? list(store) : json(store)
-  })
-}
+import { json, memo, mockApi } from './test-api.js'
 
 const textbox = () => screen.getByRole('textbox', { name: '新しいメモの本文' })
 const saveButton = () => screen.getByRole('button', { name: '保存' })
@@ -48,14 +23,14 @@ describe('一覧（F2）', () => {
     expect(cards[1]).toHaveTextContent('1つ目のメモ')
     expect(cards[0]).toHaveTextContent('2026-11-16(月) 10:30')
     expect(cards[1]).toHaveTextContent('2026-11-16(月) 00:30')
-    expect(screen.getByText('全2件')).toBeInTheDocument()
+    expect(screen.getByText('全2件（重要：0件）')).toBeInTheDocument()
   })
 
   it('メモが 0 件のときは案内を出す', async () => {
     mockApi({ list: [] })
     render(<App />)
     expect(await screen.findByText('メモはまだありません')).toBeInTheDocument()
-    expect(screen.getByText('全0件')).toBeInTheDocument()
+    expect(screen.getByText('全0件（重要：0件）')).toBeInTheDocument()
   })
 
   it('一覧の取得に失敗したら、メッセージと再読み込みを出し、押すと読み直す', async () => {
@@ -91,7 +66,7 @@ describe('登録（F1）', () => {
 
     await waitFor(() => expect(screen.getAllByRole('article')[0]).toHaveTextContent('新しいメモ'))
     expect(screen.getAllByRole('article')).toHaveLength(2)
-    expect(screen.getByText('全2件')).toBeInTheDocument()
+    expect(screen.getByText('全2件（重要：0件）')).toBeInTheDocument()
     expect(textbox()).toHaveValue('')
 
     const postCall = fetchSpy.mock.calls.find(([, options]) => options?.method === 'POST')
@@ -119,7 +94,7 @@ describe('登録（F1）', () => {
     // 「全1件（新しいメモだけ）」にならず、前からあるメモも見える
     expect(await screen.findByText('前からあるメモ')).toBeInTheDocument()
     expect(screen.getByText('新しいメモ', { selector: '.body' })).toBeInTheDocument()
-    expect(screen.getByText('全2件')).toBeInTheDocument()
+    expect(screen.getByText('全2件（重要：0件）')).toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
