@@ -28,12 +28,13 @@ export default function App() {
     return () => clearTimeout(timer)
   }, [keywordInput])
 
-  const fetchAll = (filter) => Promise.all([fetchMemos(filter), fetchCounts()])
+  // 件数だけ失敗しても、一覧は出す（件数は前の値のまま）。一覧の失敗は、そのまま失敗として扱う
+  const fetchAll = (filter) => Promise.all([fetchMemos(filter), fetchCounts().catch(() => null)])
 
   function showLoaded(filter, [memos, newCounts]) {
     setLoadError('')
     setResult({ memos, keyword: filter.keyword, filtered: isFiltered(filter) })
-    setCounts(newCounts)
+    if (newCounts) setCounts(newCounts)
   }
 
   // 読み込みに失敗したら、メッセージを出す。すでに表示しているメモは消さない。

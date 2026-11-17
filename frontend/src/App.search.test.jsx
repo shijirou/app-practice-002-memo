@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import App from './App.jsx'
 import { importantMemo, json, memo, mockApi } from './test-api.js'
 
@@ -102,6 +102,18 @@ describe('検索（F3）', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('エラーが起きました')
     expect(screen.getByText('消えてはいけないメモ')).toBeInTheDocument()
+  })
+})
+
+describe('件数の取得', () => {
+  it('件数だけ取れなくても、一覧は表示する', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) =>
+      url === '/api/memos/counts' ? json({ message: 'エラーが起きました' }, 500) : json([memo(1, '一覧は見えるメモ')]),
+    )
+    render(<App />)
+
+    expect(await screen.findByText('一覧は見えるメモ')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 })
 
