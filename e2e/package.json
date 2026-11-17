@@ -1,0 +1,13 @@
+{
+  "name": "app-practice-002-memo-e2e",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "pretest": "node scripts/prepare-db.mjs",
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1"
+  }
+}

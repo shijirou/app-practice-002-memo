@@ -57,8 +57,19 @@ Spring Boot が管理する部品（Spring Web・Spring Data JPA・テスト用�
 | Git | 2.55.0 | 変更の記録 |
 | GitHub CLI（gh） | 2.100.0 | Issue・PR の作成 |
 
+## E2E テスト（Playwright）
+`e2e/`。画面・API・DB をつないで、実際のブラウザを自動で動かして確かめる。
+
+| 名前 | バージョン | 役割 |
+|---|---|---|
+| @playwright/test | 1.65.1 | ブラウザを自動で操作して確かめる（E2E テストの標準的な道具）。手元は入っている Edge、CI は Playwright の Chromium を使う |
+
+- 専用の DB（`memo_e2e`）を使い、普段の DB（`memo`）には触れない。テストの前に `e2e/scripts/prepare-db.mjs` が作り直す（DB のコンテナ `memo-db` が動いている必要がある）。
+- 画面（5173）と API（8080）は、Playwright が決められたポートで起動する。すでに起動しているサーバーは使い回さないので、実行の前に、開発用のサーバーを止めておく。
+- 実行: `e2e/` で `npm test`。
+
 ## CI（GitHub Actions）
-`.github/workflows/ci.yml`。PR と main への push のたびに、画面（lint・テスト・ビルド）と API（テスト）を動かす。ジョブ名は `check`。
+`.github/workflows/ci.yml`。PR と main への push のたびに、画面（lint・テスト・ビルド）・API（テスト）・E2E テストを動かす。ジョブ名は `check`。
 
 | 名前 | バージョン | 役割 |
 |---|---|---|
@@ -67,6 +78,7 @@ Spring Boot が管理する部品（Spring Web・Spring Data JPA・テスト用�
 | actions/setup-node | v7（最新 v7.1.0） | Node.js 24 を用意し、npm の部品をキャッシュする |
 | actions/setup-java | v6（最新 v6.3.0） | Java 25（Temurin）を用意する |
 | gradle/actions（setup-gradle） | v6（最新 v6.4.1） | Gradle のキャッシュ |
+| actions/upload-artifact | v7（最新 v7.0.2） | E2E が失敗したときの記録（画面・動画・操作の履歴）を保存する（7 日間） |
 
 版は、大きい番号（v7 など）で指定している。確認日 2026-11-17。CI は、画面と API の網羅率を測り、実行ごとの「Summary」に表で出す（測るだけで、低くても失敗にはしない。表を作る小さなスクリプトは `.github/scripts/coverage-summary.mjs`）。
 

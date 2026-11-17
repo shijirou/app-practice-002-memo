@@ -1,4 +1,4 @@
-# PR と main への push のたびに、画面（lint・テスト・ビルド）と API（テスト）を自動で確かめる。
+# PR と main への push のたびに、画面（lint・テスト・ビルド）・API（テスト）・E2E テスト（画面から DB まで通し）を自動で確かめる。
 # ジョブの名前 `check` は、GitHub のルールセットで「必須のチェック」にするときの名前。
 name: CI
 
@@ -28,7 +28,9 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: |
+            frontend/package-lock.json
+            e2e/package-lock.json
       - name: 画面の部品を入れる
         run: npm ci
         working-directory: frontend
@@ -51,6 +53,32 @@ jobs:
       - name: API のテスト（網羅率も測る）
         run: ./gradlew test
         working-directory: backend
+
+      # ---- E2E テスト（Playwright）。画面・API・DB をつないで、実際のブラウザで確かめる ----
+      # テストの前に、DB の起動と、専用の DB（memo_e2e）の作成を行う。画面と API は、Playwright が起動する
+      - name: E2E 用に DB を起動する（.env は、この実行だけの使い捨ての値で作る）
+        run: |
+          printf 'DB_NAME=memo\nDB_USER=memo\nDB_PASSWORD=%s\n' "$(openssl rand -hex 16)" > .env
+          docker compose up -d --wait
+      - name: E2E の部品を入れる
+        run: npm ci
+        working-directory: e2e
+      - name: E2E 用のブラウザ（Chromium）を入れる
+        run: npx playwright install --with-deps chromium
+        working-directory: e2e
+      - name: E2E テスト
+        run: npm test
+        working-directory: e2e
+      - name: E2E が失敗したときの記録（画面・動画・操作の履歴）を保存する
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-failure-records
+          path: |
+            e2e/test-results
+            e2e/playwright-report
+          retention-days: 7
+          if-no-files-found: ignore
 
       # ---- 網羅率を、この実行の「Summary」に表で出す（測るだけ。低くても失敗にはしない） ----
       - name: 網羅率を Summary に出す

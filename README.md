@@ -53,13 +53,13 @@ docker compose up -d       # DB（リポジトリ直下）
 ./gradlew bootRun          # API（backend/ で）
 npm run dev                # 画面（frontend/ で）
 ```
-止めるときは、画面と API は `Ctrl + C`、DB は `docker compose down`（メモは残る）。テストは、`backend/` で `./gradlew test`（本物の PostgreSQL を Docker で起動）、`frontend/` で `npm test`・`npm run lint`。
+止めるときは、画面と API は `Ctrl + C`、DB は `docker compose down`（メモは残る）。テストは、`backend/` で `./gradlew test`（本物の PostgreSQL を Docker で起動）、`frontend/` で `npm test`・`npm run lint`、`e2e/` で `npm test`（E2E。DB を起動し、画面と API は止めておく。専用の DB を使うので、普段のメモは変わらない）。
 
 ## 品質への取り組み
-- **テスト 89 件**（API 38・画面 51）。網羅率（テストがコードのどれだけを実行したか）は、行で API 93%・画面 99%。CI が毎回測って表に出す。API のテストは、使い捨ての本物の PostgreSQL で動かす。PR のたびに CI が自動で動き、成功しないとマージできない（ルールセットで必須）
+- **テスト 102 件**（API 38・画面 51・E2E 13）。E2E は、画面・API・DB をつないで、実際のブラウザを自動で動かす。網羅率（テストがコードのどれだけを実行したか）は、行で API 93%・画面 99%。CI が毎回測って表に出す。API のテストは、使い捨ての本物の PostgreSQL で動かす。PR のたびに CI が自動で動き、成功しないとマージできない（ルールセットで必須）
 - **コードレビュー**を、機能ごとに行った（見つけた指摘・直したこと・見送った理由を記録）。**品質チェック**を 3 回行い、実際に動かして確かめることで、「API が外部からつながる設定だった」などの問題も見つけて直した → [品質チェックの記録](docs/quality-review.md)
 - **公開前の安全確認**: 履歴全体の秘密情報検索、個人情報、部品の脆弱性（0 件）、GitHub の設定を確認 → [最終確認](docs/final-check.md)
-- 日本語の入力（変換中のキー）、保存・取り消しのキー操作、保存中や通信失敗時の画面の状態まで、テストで守っている。キーボードだけで通しで操作できることは、手作業で確認した（自動テストにはまだ無い。[最終確認](docs/final-check.md)）
+- 日本語の入力（変換中のキー）、保存・取り消しのキー操作、保存中や通信失敗時の画面の状態、キーボードだけの通し操作（編集・保存・削除）まで、テストで守っている
 
 ## 作り方（AI と一緒に進めた工程）
 1. 依頼の整理 → [クライアント情報](docs/client-brief.md)・[ペルソナ](docs/persona.md)・[要件定義](docs/requirements.md)・[画面デザイン](docs/screen-design.md)（動く[画面モック](docs/mock/index.html)つき）・[データ設計](docs/data-design.md)
