@@ -42,7 +42,7 @@ flowchart LR
 | E2E テスト | Playwright（画面・API・DB をつないで、実際のブラウザで確かめる） |
 | CI | GitHub Actions（画面の lint・テスト・ビルド、API のテスト、E2E テスト、網羅率の測定） |
 
-API の技術は、**Java と Spring Boot を学ぶ**ことを目的に選びました。そのため、画面は TypeScript ではなく JavaScript にしています（画面の型の学習は、今後の課題です）。
+API の技術は、**Java と Spring Boot を学ぶ**ことを目的に選びました。そのため、画面は TypeScript ではなく JavaScript にしています。
 
 バージョンの一覧は [技術スタック](docs/tech-stack.md)。API は `GET /api/memos?keyword=&important=`・`GET /api/memos/counts`・`POST /api/memos`・`PUT /api/memos/{id}`・`DELETE /api/memos/{id}`・`PUT /api/memos/{id}/important`（詳しくは [データ設計](docs/data-design.md)）。
 
