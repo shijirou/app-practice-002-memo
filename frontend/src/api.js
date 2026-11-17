@@ -23,14 +23,33 @@ async function request(path, options) {
   return response.json()
 }
 
-export function fetchMemos() {
-  return request('/api/memos')
-}
-
 export function createMemo(body) {
   return request('/api/memos', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ body }),
+  })
+}
+
+// 一覧（F2）・検索（F3）・重要のみ（F6）。keyword が空なら全件、important が true なら重要だけ。
+export function fetchMemos({ keyword = '', important = false } = {}) {
+  const params = new URLSearchParams()
+  if (keyword) params.set('keyword', keyword)
+  if (important) params.set('important', 'true')
+  const query = params.toString()
+  return request(query ? `/api/memos?${query}` : '/api/memos')
+}
+
+// 全体の件数 { total, important }。絞り込みに関係なく、全部の数。
+export function fetchCounts() {
+  return request('/api/memos/counts')
+}
+
+// 重要の付け外し（F6）
+export function setImportant(id, important) {
+  return request(`/api/memos/${id}/important`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ important }),
   })
 }

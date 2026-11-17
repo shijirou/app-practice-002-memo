@@ -1,8 +1,9 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { formatDateTime } from './format.js'
+import Highlight from './Highlight.jsx'
 
 // メモ 1 件。本文は 3 行まで。3 行を超えるときは、カードを押すか「続きを読む」で全文を開く。
-export default function MemoCard({ memo }) {
+export default function MemoCard({ memo, keyword = '', onToggleImportant }) {
   const [open, setOpen] = useState(false)
   const [truncated, setTruncated] = useState(false)
   const bodyRef = useRef(null)
@@ -41,9 +42,20 @@ export default function MemoCard({ memo }) {
         <time className="date" dateTime={memo.createdAt}>
           {formatDateTime(memo.createdAt)}
         </time>
+        <button
+          type="button"
+          className="imp"
+          disabled={!onToggleImportant}
+          onClick={(e) => {
+            e.stopPropagation() // カードの開閉は動かさない
+            onToggleImportant(memo)
+          }}
+        >
+          {memo.important ? '重要を外す' : '重要にする'}
+        </button>
       </div>
       <div className="body" ref={bodyRef}>
-        {memo.body}
+        <Highlight text={memo.body} keyword={keyword} />
       </div>
       {(truncated || open) && (
         <button

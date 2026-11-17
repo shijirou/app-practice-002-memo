@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -154,5 +155,165 @@ class MemoApiTest {
 	void 使えない操作は405で同じ形のエラー() throws Exception {
 		mockMvc.perform(delete("/api/memos")).andExpect(status().isMethodNotAllowed())
 				.andExpect(jsonPath("$.message").value("この操作はできません"));
+	}
+
+	// ---- 検索（F3）・重要（F6） ----
+
+	private int postAndGetId(String body) throws Exception {
+		return JsonPath.read(postMemo(body).andReturn().getResponse().getContentAsString(), "$.id");
+	}
+
+	private ResultActions putImportant(Object id, String json) throws Exception {
+		return mockMvc.perform(put("/api/memos/" + id + "/important")
+				.contentType(MediaType.APPLICATION_JSON).content(json));
+	}
+
+	@Test
+	void キーワードを含む本文だけに絞り込み_新しい順は保つ() throws Exception {
+		postMemo("見積書を送る");
+		postMemo("会議室の予約");
+		postMemo("見積書の再送");
+
+		mockMvc.perform(get("/api/memos").param("keyword", "見積書"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$", hasSize(2)))
+				.andExpect(jsonPath("$[0].body").value("見積書の再送"))
+				.andExpect(jsonPath("$[1].body").value("見積書を送る"));
+	}
+
+	@Test
+	void 検索は大文字小文字を区別しない() throws Exception {
+		postMemo("Order the A4 paper");
+		mockMvc.perform(get("/api/memos").param("keyword", "a4 PAPER")).andExpect(jsonPath("$", hasSize(1)));
+	}
+
+	@Test
+	void 検索語の前後の空白は無視し_空白だけなら全件() throws Exception {
+		postMemo("1つ目");
+		postMemo("2つ目");
+		mockMvc.perform(get("/api/memos").param("keyword", "  1つ目  ")).andExpect(jsonPath("$", hasSize(1)));
+		mockMvc.perform(get("/api/memos").param("keyword", "   ")).andExpect(jsonPath("$", hasSize(2)));
+		mockMvc.perform(get("/api/memos").param("keyword", "")).andExpect(jsonPath("$", hasSize(2)));
+	}
+
+	@Test
+	void 検索語の記号_パーセント_アンダースコア_感嘆符は普通の文字として探す() throws Exception {
+		postMemo("割引は 50% まで");
+		postMemo("file_name の確認");
+		postMemo("注意!! 期限");
+		postMemo("ふつうのメモ");
+
+		mockMvc.perform(get("/api/memos").param("keyword", "%")).andExpect(jsonPath("$", hasSize(1)))
+				.andExpect(jsonPath("$[0].body").value("割引は 50% まで"));
+		mockMvc.perform(get("/api/memos").param("keyword", "_")).andExpect(jsonPath("$", hasSize(1)))
+				.andExpect(jsonPath("$[0].body").value("file_name の確認"));
+		mockMvc.perform(get("/api/memos").param("keyword", "!")).andExpect(jsonPath("$", hasSize(1)));
+		mockMvc.perform(get("/api/memos").param("keyword", "!!")).andExpect(jsonPath("$", hasSize(1)));
+		mockMvc.perform(get("/api/memos").param("keyword", "e_n")).andExpect(jsonPath("$", hasSize(1)));
+		mockMvc.perform(get("/api/memos").param("keyword", "ふ_つ")).andExpect(jsonPath("$", hasSize(0)));
+	}
+
+	@Test
+	void SQLの断片を検索語にしても_ただの文字として扱われる() throws Exception {
+		postMemo("ふつうのメモ");
+		mockMvc.perform(get("/api/memos").param("keyword", "' OR '1'='1")).andExpect(status().isOk())
+				.andExpect(jsonPath("$", hasSize(0)));
+	}
+
+	@Test
+	void 一致しなければ空の配列() throws Exception {
+		postMemo("ふつうのメモ");
+		mockMvc.perform(get("/api/memos").param("keyword", "存在しない語")).andExpect(status().isOk())
+				.andExpect(jsonPath("$", hasSize(0)));
+	}
+
+	@Test
+	void 重要を付けると_返事と一覧に反映され_外すと戻る() throws Exception {
+		int id = postAndGetId("大事なメモ");
+
+		putImportant(id, "{\"important\":true}").andExpect(status().isOk())
+				.andExpect(jsonPath("$.id").value(id))
+				.andExpect(jsonPath("$.important").value(true));
+		mockMvc.perform(get("/api/memos")).andExpect(jsonPath("$[0].important").value(true));
+
+		putImportant(id, "{\"important\":false}").andExpect(status().isOk())
+				.andExpect(jsonPath("$.important").value(false));
+		mockMvc.perform(get("/api/memos")).andExpect(jsonPath("$[0].important").value(false));
+	}
+
+	@Test
+	void 重要を切り替えても_並び順と更新日時は変わらない() throws Exception {
+		int first = postAndGetId("1つ目");
+		postMemo("2つ目");
+		String before = JsonPath.read(
+				mockMvc.perform(get("/api/memos")).andReturn().getResponse().getContentAsString(),
+				"$[1].updatedAt");
+
+		putImportant(first, "{\"important\":true}").andExpect(status().isOk());
+
+		mockMvc.perform(get("/api/memos"))
+				.andExpect(jsonPath("$[0].body").value("2つ目"))
+				.andExpect(jsonPath("$[1].body").value("1つ目"))
+				.andExpect(jsonPath("$[1].updatedAt").value(before));
+	}
+
+	@Test
+	void 重要のみで絞り込み_検索とも組み合わせられる() throws Exception {
+		int a = postAndGetId("見積書A");
+		postMemo("見積書B");
+		int c = postAndGetId("会議室");
+		putImportant(a, "{\"important\":true}");
+		putImportant(c, "{\"important\":true}");
+
+		mockMvc.perform(get("/api/memos").param("important", "true"))
+				.andExpect(jsonPath("$", hasSize(2)))
+				.andExpect(jsonPath("$[0].body").value("会議室"))
+				.andExpect(jsonPath("$[1].body").value("見積書A"));
+		mockMvc.perform(get("/api/memos").param("important", "true").param("keyword", "見積書"))
+				.andExpect(jsonPath("$", hasSize(1)))
+				.andExpect(jsonPath("$[0].body").value("見積書A"));
+		// important=false は「絞り込まない」（重要でないものだけ、ではない）
+		mockMvc.perform(get("/api/memos").param("important", "false")).andExpect(jsonPath("$", hasSize(3)));
+	}
+
+	@Test
+	void 件数は全体の数で_絞り込みに左右されない() throws Exception {
+		mockMvc.perform(get("/api/memos/counts")).andExpect(status().isOk())
+				.andExpect(jsonPath("$.total").value(0)).andExpect(jsonPath("$.important").value(0));
+
+		int a = postAndGetId("1つ目");
+		postMemo("2つ目");
+		postMemo("3つ目");
+		putImportant(a, "{\"important\":true}");
+
+		mockMvc.perform(get("/api/memos/counts"))
+				.andExpect(jsonPath("$.total").value(3)).andExpect(jsonPath("$.important").value(1));
+	}
+
+	@Test
+	void 存在しないidの重要の切り替えは404() throws Exception {
+		putImportant(999999, "{\"important\":true}").andExpect(status().isNotFound())
+				.andExpect(jsonPath("$.message").value("メモが見つかりません"));
+	}
+
+	@Test
+	void 重要の切り替えで_idが数字でなければ400() throws Exception {
+		putImportant("abc", "{\"important\":true}").andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.message").value("リクエストが正しくありません"));
+	}
+
+	@Test
+	void 重要の指定が無い_または真偽でなければ400() throws Exception {
+		int id = postAndGetId("メモ");
+		putImportant(id, "{}").andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.message").value("important は true か false で指定してください"));
+		putImportant(id, "{\"important\":\"yes\"}").andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.message").value("リクエストが正しくありません"));
+	}
+
+	@Test
+	void importantが真偽でない検索は400() throws Exception {
+		mockMvc.perform(get("/api/memos").param("important", "maybe")).andExpect(status().isBadRequest())
+				.andExpect(jsonPath("$.message").value("リクエストが正しくありません"));
 	}
 }
