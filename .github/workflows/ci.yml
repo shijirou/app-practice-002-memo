@@ -35,8 +35,8 @@ jobs:
       - name: 画面の lint
         run: npm run lint
         working-directory: frontend
-      - name: 画面のテスト
-        run: npm test
+      - name: 画面のテスト（網羅率も測る）
+        run: npm run coverage
         working-directory: frontend
       - name: 画面のビルド
         run: npm run build
@@ -48,6 +48,11 @@ jobs:
           distribution: temurin
           java-version: 25
       - uses: gradle/actions/setup-gradle@v6
-      - name: API のテスト
+      - name: API のテスト（網羅率も測る）
         run: ./gradlew test
         working-directory: backend
+
+      # ---- 網羅率を、この実行の「Summary」に表で出す（測るだけ。低くても失敗にはしない） ----
+      - name: 網羅率を Summary に出す
+        if: always()
+        run: node .github/scripts/coverage-summary.mjs | tee -a "$GITHUB_STEP_SUMMARY"
