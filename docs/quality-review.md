@@ -19,7 +19,6 @@
 | I-6 | 改行コードの設定（`.gitattributes`）がリポジトリ直下に無く、Windows で LF/CRLF の警告が出る | 様子見（内容に影響しない） | [1 回目](quality-review/01-design-and-mock.md) |
 | I-7 | `git push` と「main」が同じ行にあると、コミット文などでもフックが誤って止まる | 様子見（安全側に倒れている） | [1 回目](quality-review/01-design-and-mock.md) |
 | I-8 | 画面幅 1024px 未満の表示、Edge 以外のブラウザ、キーボードだけの通し操作は未確認 | 画面の最終確認で行う | [1 回目](quality-review/01-design-and-mock.md) |
-| I-9 | CI（GitHub Actions）がまだ無い | **次に行う** | [2 回目](quality-review/02-slice1-code-review.md) |
 | I-10 | 日時を DB 側の `now()` に任せていない（1 人専用・1 台なので問題なし） | 様子見 | [2 回目](quality-review/02-slice1-code-review.md) |
 | I-11 | 削除ボタンの連打対策が無い。編集中の Esc で、書いた文章がすぐ消える（要件どおり） | 要相談 | [3 回目](quality-review/03-code-overall.md) |
 | I-12 | 件数を 2 回の問い合わせで数えている。複数のタブから同時に同じメモを消す・直すと、後の操作が 404 や上書きになる | 様子見（1 人専用で影響が小さい） | [3 回目](quality-review/03-code-overall.md) |
