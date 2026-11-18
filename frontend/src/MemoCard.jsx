@@ -14,6 +14,7 @@ export default function MemoCard({ memo, keyword = '', onToggleImportant, onUpda
   const [draft, setDraft] = useState('')
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false) // 削除の処理中は削除ボタンを押せなくする（連打で 404 にならないように）
   const bodyRef = useRef(null)
   const textareaRef = useRef(null)
   const editButtonRef = useRef(null)
@@ -77,6 +78,8 @@ export default function MemoCard({ memo, keyword = '', onToggleImportant, onUpda
   }
 
   function cancelEdit() {
+    // 書きかけがあるときだけ、捨てていいか確かめる（変えていなければ、そのまま閉じる）
+    if (draft !== memo.body && !window.confirm('編集中の内容を破棄しますか？')) return
     returnFocus.current = true
     setEditing(false)
     setError('')
@@ -110,8 +113,14 @@ export default function MemoCard({ memo, keyword = '', onToggleImportant, onUpda
     else if (e.ctrlKey && e.key === 'Enter') saveEdit()
   }
 
-  function handleDelete() {
-    if (window.confirm('このメモを削除しますか？\n削除すると元に戻せません。')) onDelete(memo)
+  async function handleDelete() {
+    if (deleting || !window.confirm('このメモを削除しますか？\n削除すると元に戻せません。')) return
+    setDeleting(true)
+    try {
+      await onDelete(memo)
+    } finally {
+      setDeleting(false)
+    }
   }
 
   const classes = `card${memo.important ? ' important' : ''}${open ? ' open' : ''}${editing ? ' editing' : ''}`
@@ -165,7 +174,7 @@ export default function MemoCard({ memo, keyword = '', onToggleImportant, onUpda
             <button
               type="button"
               className="del"
-              disabled={!onDelete}
+              disabled={!onDelete || deleting}
               onClick={(e) => {
                 e.stopPropagation()
                 handleDelete()

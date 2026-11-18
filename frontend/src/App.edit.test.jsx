@@ -54,6 +54,27 @@ describe('編集（F4）', () => {
     expect(await screen.findByText('元の本文（追記）')).toBeInTheDocument()
   })
 
+  it('書きかけがあるときの Esc で破棄を断ると、編集を続けられる。変えていなければ確認なしで閉じる', async () => {
+    const user = userEvent.setup()
+    mockApi({ list: [memo(1, '元の本文')] })
+    render(<App />)
+    await screen.findByText('元の本文')
+
+    await user.click(screen.getByRole('button', { name: '編集' }))
+    await user.type(editBox(), '（書きかけ）')
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    await user.keyboard('{Escape}')
+    expect(editBox()).toHaveValue('元の本文（書きかけ）')
+
+    // 元の本文に戻せば「変えていない」ので、確認なしで閉じる
+    confirmSpy.mockClear()
+    await user.clear(editBox())
+    await user.type(editBox(), '元の本文')
+    await user.keyboard('{Escape}')
+    expect(confirmSpy).not.toHaveBeenCalled()
+    expect(screen.queryByRole('textbox', { name: 'メモの本文を編集' })).not.toBeInTheDocument()
+  })
+
   it('Esc で取り消すと、送らずに元の本文に戻る', async () => {
     const user = userEvent.setup()
     const fetchSpy = mockApi({ list: [memo(1, '元の本文')] })
@@ -62,8 +83,10 @@ describe('編集（F4）', () => {
 
     await user.click(screen.getByRole('button', { name: '編集' }))
     await user.type(editBox(), 'やっぱりやめる')
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
     await user.keyboard('{Escape}')
 
+    expect(confirmSpy).toHaveBeenCalledTimes(1)
     expect(screen.getByText('元の本文')).toBeInTheDocument()
     expect(screen.queryByRole('textbox', { name: 'メモの本文を編集' })).not.toBeInTheDocument()
     expect(apiCalls(fetchSpy, 'PUT')).toHaveLength(0)
@@ -266,6 +289,28 @@ describe('削除（F5）', () => {
 
     expect(apiCalls(fetchSpy, 'DELETE')).toHaveLength(0)
     expect(screen.getByText('消さないメモ')).toBeInTheDocument()
+  })
+
+  it('削除の処理中は削除ボタンが押せず、連打しても 1 回しか送らない', async () => {
+    const user = userEvent.setup()
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    let finish
+    const fetchSpy = mockApi({
+      list: [memo(1, '消すメモ')],
+      deleteMemo: () => new Promise((resolve) => (finish = () => resolve(new Response(null, { status: 204 })))),
+    })
+    render(<App />)
+    await screen.findByText('消すメモ')
+
+    const button = screen.getByRole('button', { name: '削除' })
+    await user.click(button)
+    expect(button).toBeDisabled()
+    await user.click(button)
+    expect(apiCalls(fetchSpy, 'DELETE')).toHaveLength(1)
+
+    // 処理が終わると、また押せる（差し替えた代役はメモを消さないので、一覧には残る）
+    finish()
+    await waitFor(() => expect(screen.getByRole('button', { name: '削除' })).toBeEnabled())
   })
 
   it('最後の 1 件を消すと「メモはまだありません」になる', async () => {
