@@ -168,6 +168,7 @@ test.describe('編集（F4）', () => {
 
     await cards(page).first().getByRole('button', { name: '編集' }).click()
     await page.getByRole('textbox', { name: 'メモの本文を編集' }).fill('やっぱりやめる')
+    page.once('dialog', (dialog) => dialog.accept()) // 「編集中の内容を破棄しますか？」
     await page.keyboard.press('Escape')
 
     await expect(cards(page).first()).toContainText('元の本文（架空）')
